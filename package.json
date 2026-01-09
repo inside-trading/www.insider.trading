@@ -1,0 +1,13 @@
+{
+  "name": "insider-trading-dex",
+  "version": "1.0.0",
+  "description": "Decentralized Crypto Exchange - Insider Trading",
+  "scripts": {
+    "dev": "npx serve .",
+    "build": "echo 'Static site - no build required'",
+    "start": "npx serve . -p 3000"
+  },
+  "keywords": ["dex", "crypto", "exchange", "defi", "web3"],
+  "author": "",
+  "license": "MIT"
+}

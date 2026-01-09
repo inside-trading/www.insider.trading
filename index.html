@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Insider Trading - Decentralized Crypto Exchange. Trade tokens securely with low fees and deep liquidity.">
+    <title>Insider Trading | Decentralized Exchange</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <div class="logo">
+                <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="18" stroke="url(#logo-gradient)" stroke-width="3"/>
+                    <path d="M14 20L18 24L26 16" stroke="url(#logo-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#00D4AA"/>
+                            <stop offset="1" stop-color="#7B61FF"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="logo-text">Insider Trading</span>
+            </div>
+
+            <nav class="nav">
+                <a href="#swap" class="nav-link active">Swap</a>
+                <a href="#pools" class="nav-link">Pools</a>
+                <a href="#tokens" class="nav-link">Tokens</a>
+                <a href="#stats" class="nav-link">Stats</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="network-btn" id="networkBtn">
+                    <span class="network-dot"></span>
+                    <span class="network-name">Ethereum</span>
+                    <svg class="chevron" viewBox="0 0 24 24" fill="none">
+                        <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+                <button class="connect-wallet-btn" id="connectWalletBtn">
+                    <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
+                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 13.5C16 14.3284 15.3284 15 14.5 15C13.6716 15 13 14.3284 13 13.5C13 12.6716 13.6716 12 14.5 12C15.3284 12 16 12.6716 16 13.5Z" fill="currentColor"/>
+                        <path d="M6 6V5C6 3.89543 6.89543 3 8 3H18C19.1046 3 20 3.89543 20 5V6" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Connect Wallet
+                </button>
+            </div>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Mobile Menu -->
+    <div class="mobile-menu" id="mobileMenu">
+        <nav class="mobile-nav">
+            <a href="#swap" class="mobile-nav-link active">Swap</a>
+            <a href="#pools" class="mobile-nav-link">Pools</a>
+            <a href="#tokens" class="mobile-nav-link">Tokens</a>
+            <a href="#stats" class="mobile-nav-link">Stats</a>
+        </nav>
+        <button class="connect-wallet-btn mobile-wallet-btn">Connect Wallet</button>
+    </div>
+
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Hero Section -->
+        <section class="hero">
+            <div class="hero-bg">
+                <div class="hero-glow hero-glow-1"></div>
+                <div class="hero-glow hero-glow-2"></div>
+            </div>
+            <div class="hero-content">
+                <h1 class="hero-title">Trade Crypto with <span class="gradient-text">Zero Boundaries</span></h1>
+                <p class="hero-subtitle">The most secure and efficient decentralized exchange. Trade any token instantly with the best rates.</p>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-value" data-value="2.4">$0</span>
+                        <span class="stat-label">Total Volume (B)</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" data-value="150">0</span>
+                        <span class="stat-label">Trading Pairs</span>
+                    </div>
+                    <div class="stat">
+                        <span class="stat-value" data-value="45">0</span>
+                        <span class="stat-label">Users (K)</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Swap Section -->
+        <section class="swap-section" id="swap">
+            <div class="swap-container">
+                <div class="swap-card">
+                    <div class="swap-header">
+                        <h2 class="swap-title">Swap</h2>
+                        <button class="settings-btn" id="settingsBtn">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/>
+                                <path d="M12 1V4M12 20V23M4.22 4.22L6.34 6.34M17.66 17.66L19.78 19.78M1 12H4M20 12H23M4.22 19.78L6.34 17.66M17.66 6.34L19.78 4.22" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </button>
+                    </div>
+
+                    <!-- Settings Panel -->
+                    <div class="settings-panel" id="settingsPanel">
+                        <div class="settings-row">
+                            <span class="settings-label">Slippage Tolerance</span>
+                            <div class="slippage-options">
+                                <button class="slippage-btn" data-value="0.1">0.1%</button>
+                                <button class="slippage-btn active" data-value="0.5">0.5%</button>
+                                <button class="slippage-btn" data-value="1.0">1.0%</button>
+                                <input type="number" class="slippage-input" placeholder="Custom" step="0.1">
+                            </div>
+                        </div>
+                        <div class="settings-row">
+                            <span class="settings-label">Transaction Deadline</span>
+                            <div class="deadline-input-wrap">
+                                <input type="number" class="deadline-input" value="20" min="1" max="60">
+                                <span>minutes</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- From Token -->
+                    <div class="token-input-container">
+                        <div class="token-input-header">
+                            <span class="token-input-label">From</span>
+                            <span class="token-balance">Balance: <span id="fromBalance">0.00</span></span>
+                        </div>
+                        <div class="token-input-body">
+                            <input type="number" class="token-amount-input" id="fromAmount" placeholder="0.0" step="any">
+                            <button class="token-select-btn" id="fromTokenBtn">
+                                <img src="assets/tokens/eth.svg" alt="ETH" class="token-icon" id="fromTokenIcon">
+                                <span class="token-symbol" id="fromTokenSymbol">ETH</span>
+                                <svg class="chevron" viewBox="0 0 24 24" fill="none">
+                                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="token-input-footer">
+                            <span class="token-usd-value">~$<span id="fromUsdValue">0.00</span></span>
+                            <div class="quick-amount-btns">
+                                <button class="quick-btn" data-percent="25">25%</button>
+                                <button class="quick-btn" data-percent="50">50%</button>
+                                <button class="quick-btn" data-percent="75">75%</button>
+                                <button class="quick-btn" data-percent="100">MAX</button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Swap Direction Button -->
+                    <button class="swap-direction-btn" id="swapDirectionBtn">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M7 10L12 5L17 10M7 14L12 19L17 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+
+                    <!-- To Token -->
+                    <div class="token-input-container">
+                        <div class="token-input-header">
+                            <span class="token-input-label">To</span>
+                            <span class="token-balance">Balance: <span id="toBalance">0.00</span></span>
+                        </div>
+                        <div class="token-input-body">
+                            <input type="number" class="token-amount-input" id="toAmount" placeholder="0.0" step="any" readonly>
+                            <button class="token-select-btn" id="toTokenBtn">
+                                <img src="assets/tokens/usdc.svg" alt="USDC" class="token-icon" id="toTokenIcon">
+                                <span class="token-symbol" id="toTokenSymbol">USDC</span>
+                                <svg class="chevron" viewBox="0 0 24 24" fill="none">
+                                    <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="token-input-footer">
+                            <span class="token-usd-value">~$<span id="toUsdValue">0.00</span></span>
+                        </div>
+                    </div>
+
+                    <!-- Swap Details -->
+                    <div class="swap-details" id="swapDetails">
+                        <div class="swap-detail-row">
+                            <span class="detail-label">Rate</span>
+                            <span class="detail-value" id="swapRate">1 ETH = 2,450.00 USDC</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="detail-label">Price Impact</span>
+                            <span class="detail-value positive" id="priceImpact">&lt;0.01%</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="detail-label">Minimum Received</span>
+                            <span class="detail-value" id="minReceived">0.00 USDC</span>
+                        </div>
+                        <div class="swap-detail-row">
+                            <span class="detail-label">Network Fee</span>
+                            <span class="detail-value" id="networkFee">~$2.50</span>
+                        </div>
+                    </div>
+
+                    <!-- Swap Button -->
+                    <button class="swap-btn" id="swapBtn">
+                        <span class="swap-btn-text">Connect Wallet to Swap</span>
+                    </button>
+                </div>
+
+                <!-- Route Display -->
+                <div class="route-card">
+                    <h3 class="route-title">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M13 5H21M21 5V13M21 5L13 13M11 19H3M3 19V11M3 19L11 11" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        Best Route
+                    </h3>
+                    <div class="route-path" id="routePath">
+                        <div class="route-token">
+                            <img src="assets/tokens/eth.svg" alt="ETH">
+                            <span>ETH</span>
+                        </div>
+                        <svg class="route-arrow" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="route-pool">
+                            <span class="pool-name">Insider V2</span>
+                            <span class="pool-fee">0.3%</span>
+                        </div>
+                        <svg class="route-arrow" viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        <div class="route-token">
+                            <img src="assets/tokens/usdc.svg" alt="USDC">
+                            <span>USDC</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Pools Section -->
+        <section class="pools-section" id="pools">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Top Liquidity Pools</h2>
+                        <p class="section-subtitle">Earn fees by providing liquidity to trading pairs</p>
+                    </div>
+                    <button class="primary-btn">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 5V19M5 12H19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        Add Liquidity
+                    </button>
+                </div>
+
+                <div class="pools-table-container">
+                    <table class="pools-table">
+                        <thead>
+                            <tr>
+                                <th>Pool</th>
+                                <th>TVL</th>
+                                <th>Volume (24h)</th>
+                                <th>APR</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody id="poolsTableBody">
+                            <!-- Pool rows will be injected by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Tokens Section -->
+        <section class="tokens-section" id="tokens">
+            <div class="section-container">
+                <div class="section-header">
+                    <div>
+                        <h2 class="section-title">Popular Tokens</h2>
+                        <p class="section-subtitle">Track prices and trade the most popular cryptocurrencies</p>
+                    </div>
+                    <div class="search-container">
+                        <svg viewBox="0 0 24 24" fill="none" class="search-icon">
+                            <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                            <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                        <input type="text" class="search-input" id="tokenSearch" placeholder="Search tokens...">
+                    </div>
+                </div>
+
+                <div class="tokens-grid" id="tokensGrid">
+                    <!-- Token cards will be injected by JS -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Stats Section -->
+        <section class="stats-section" id="stats">
+            <div class="section-container">
+                <h2 class="section-title center">Platform Statistics</h2>
+                <p class="section-subtitle center">Real-time metrics from our decentralized exchange</p>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M12 2V22M17 5H9.5C8.57174 5 7.6815 5.36875 7.02513 6.02513C6.36875 6.6815 6 7.57174 6 8.5C6 9.42826 6.36875 10.3185 7.02513 10.9749C7.6815 11.6313 8.57174 12 9.5 12H14.5C15.4283 12 16.3185 12.3687 16.9749 13.0251C17.6313 13.6815 18 14.5717 18 15.5C18 16.4283 17.6313 17.3185 16.9749 17.9749C16.3185 18.6313 15.4283 19 14.5 19H6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="stat-card-value">$2.4B</span>
+                        <span class="stat-card-label">Total Value Locked</span>
+                        <span class="stat-card-change positive">+12.5%</span>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M3 3V21H21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M18 9L13 14L9 10L3 16" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="stat-card-value">$847M</span>
+                        <span class="stat-card-label">24h Trading Volume</span>
+                        <span class="stat-card-change positive">+8.3%</span>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M17 21V19C17 17.9391 16.5786 16.9217 15.8284 16.1716C15.0783 15.4214 14.0609 15 13 15H5C3.93913 15 2.92172 15.4214 2.17157 16.1716C1.42143 16.9217 1 17.9391 1 19V21" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <circle cx="9" cy="7" r="4" stroke="currentColor" stroke-width="2"/>
+                                <path d="M23 21V19C22.9993 18.1137 22.7044 17.2528 22.1614 16.5523C21.6184 15.8519 20.8581 15.3516 20 15.13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M16 3.13C16.8604 3.35031 17.623 3.85071 18.1676 4.55232C18.7122 5.25392 19.0078 6.11683 19.0078 7.005C19.0078 7.89318 18.7122 8.75608 18.1676 9.45769C17.623 10.1593 16.8604 10.6597 16 10.88" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="stat-card-value">45,892</span>
+                        <span class="stat-card-label">Total Users</span>
+                        <span class="stat-card-change positive">+156</span>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-card-icon">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                                <path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </div>
+                        <span class="stat-card-value">1.2M</span>
+                        <span class="stat-card-label">Total Transactions</span>
+                        <span class="stat-card-change positive">+3,421</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- CTA Section -->
+        <section class="cta-section">
+            <div class="cta-container">
+                <div class="cta-content">
+                    <h2 class="cta-title">Ready to Start Trading?</h2>
+                    <p class="cta-text">Connect your wallet and start trading in seconds. No registration required.</p>
+                    <button class="cta-btn" id="ctaConnectBtn">
+                        Connect Wallet
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer">
+        <div class="footer-container">
+            <div class="footer-top">
+                <div class="footer-brand">
+                    <div class="logo">
+                        <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="20" cy="20" r="18" stroke="url(#footer-logo-gradient)" stroke-width="3"/>
+                            <path d="M14 20L18 24L26 16" stroke="url(#footer-logo-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                            <defs>
+                                <linearGradient id="footer-logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                                    <stop stop-color="#00D4AA"/>
+                                    <stop offset="1" stop-color="#7B61FF"/>
+                                </linearGradient>
+                            </defs>
+                        </svg>
+                        <span class="logo-text">Insider Trading</span>
+                    </div>
+                    <p class="footer-desc">The most secure and efficient decentralized exchange for trading cryptocurrency.</p>
+                    <div class="social-links">
+                        <a href="#" class="social-link" aria-label="Twitter">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Discord">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057a.082.082 0 0 0 .031.057 19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.107 13.107 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03zM8.02 15.33c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.956-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.956 2.418-2.157 2.418zm7.975 0c-1.183 0-2.157-1.085-2.157-2.419 0-1.333.955-2.419 2.157-2.419 1.21 0 2.176 1.096 2.157 2.42 0 1.333-.946 2.418-2.157 2.418z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="GitHub">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                            </svg>
+                        </a>
+                        <a href="#" class="social-link" aria-label="Telegram">
+                            <svg viewBox="0 0 24 24" fill="currentColor">
+                                <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                            </svg>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="footer-links">
+                    <div class="footer-links-column">
+                        <h4 class="footer-links-title">Products</h4>
+                        <a href="#swap" class="footer-link">Swap</a>
+                        <a href="#pools" class="footer-link">Liquidity Pools</a>
+                        <a href="#" class="footer-link">Farming</a>
+                        <a href="#" class="footer-link">Staking</a>
+                    </div>
+                    <div class="footer-links-column">
+                        <h4 class="footer-links-title">Resources</h4>
+                        <a href="#" class="footer-link">Documentation</a>
+                        <a href="#" class="footer-link">Whitepaper</a>
+                        <a href="#" class="footer-link">Audits</a>
+                        <a href="#" class="footer-link">Bug Bounty</a>
+                    </div>
+                    <div class="footer-links-column">
+                        <h4 class="footer-links-title">Company</h4>
+                        <a href="#" class="footer-link">About</a>
+                        <a href="#" class="footer-link">Blog</a>
+                        <a href="#" class="footer-link">Careers</a>
+                        <a href="#" class="footer-link">Contact</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2024 Insider Trading. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#" class="footer-bottom-link">Terms of Service</a>
+                    <a href="#" class="footer-bottom-link">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Token Select Modal -->
+    <div class="modal-overlay" id="tokenModal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 class="modal-title">Select a Token</h3>
+                <button class="modal-close" id="closeTokenModal">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="modal-search">
+                <svg viewBox="0 0 24 24" fill="none" class="search-icon">
+                    <circle cx="11" cy="11" r="8" stroke="currentColor" stroke-width="2"/>
+                    <path d="M21 21L16.65 16.65" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                </svg>
+                <input type="text" class="modal-search-input" id="tokenModalSearch" placeholder="Search name or paste address">
+            </div>
+            <div class="common-tokens">
+                <span class="common-tokens-label">Common tokens</span>
+                <div class="common-tokens-list" id="commonTokensList">
+                    <!-- Injected by JS -->
+                </div>
+            </div>
+            <div class="token-list" id="tokenList">
+                <!-- Token list items injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Network Select Modal -->
+    <div class="modal-overlay" id="networkModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title">Select Network</h3>
+                <button class="modal-close" id="closeNetworkModal">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="network-list" id="networkList">
+                <!-- Network list items injected by JS -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Wallet Connect Modal -->
+    <div class="modal-overlay" id="walletModal">
+        <div class="modal modal-sm">
+            <div class="modal-header">
+                <h3 class="modal-title">Connect Wallet</h3>
+                <button class="modal-close" id="closeWalletModal">
+                    <svg viewBox="0 0 24 24" fill="none">
+                        <path d="M18 6L6 18M6 6L18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="wallet-list" id="walletList">
+                <!-- Wallet options injected by JS -->
+            </div>
+            <p class="wallet-disclaimer">By connecting a wallet, you agree to Insider Trading's Terms of Service and Privacy Policy.</p>
+        </div>
+    </div>
+
+    <script src="js/app.js"></script>
+</body>
+</html>
