@@ -201,6 +201,12 @@
 
 .asset-info-left {
     display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.asset-info-details {
+    display: flex;
     align-items: baseline;
     gap: 12px;
 }
@@ -438,17 +444,14 @@
 
 /* Drawing Tools */
 .drawing-tools {
-    position: absolute;
-    top: 70px;
-    left: 30px;
     display: flex;
-    flex-direction: column;
+    flex-direction: row;
+    align-items: center;
     gap: 4px;
-    background: var(--color-bg-card);
+    background: var(--color-bg-tertiary);
     border: 1px solid var(--color-border);
     border-radius: var(--radius-md);
-    padding: 6px;
-    z-index: 20;
+    padding: 4px 6px;
 }
 
 .tool-btn {
@@ -478,9 +481,10 @@
 }
 
 .tool-divider {
-    height: 1px;
+    width: 1px;
+    height: 20px;
     background: var(--color-border);
-    margin: 4px 0;
+    margin: 0 4px;
 }
 
 /* Prediction Info Section */
@@ -874,26 +878,28 @@
         border-radius: 0 0 var(--radius-md) var(--radius-md);
     }
 
-    .drawing-tools {
-        flex-direction: row;
-        top: auto;
-        bottom: 20px;
-        left: 50%;
-        transform: translateX(-50%);
-    }
-
-    .tool-divider {
-        width: 1px;
-        height: auto;
-        margin: 0 4px;
-    }
-
     .x-axis-labels {
         margin-left: 0;
     }
 }
 
 @media (max-width: 768px) {
+    .asset-info-bar {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .asset-info-left {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .asset-info-right {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
     .controls-container {
         flex-direction: column;
         align-items: stretch;
