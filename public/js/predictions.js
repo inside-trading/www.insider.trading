@@ -112,12 +112,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initializeApp() {
     setupCanvas();
     setupEventListeners();
+    setupWeb3EventListeners();
     await loadChartData();
     loadPredictions();
     updatePayoffDisplay();
 
     // Scroll to show "Now" divider in view
     scrollToNow();
+
+    // Check if already connected (page refresh)
+    if (Web3Integration.isWeb3Available() && window.ethereum.selectedAddress) {
+        try {
+            await connectWallet();
+        } catch (e) {
+            console.log('Auto-connect failed:', e);
+        }
+    }
 }
 
 // ================================================
@@ -1029,9 +1039,23 @@ async function submitPrediction() {
     }
 
     if (!state.predictedPrice) {
-        alert('Please draw your prediction first');
+        showNotification('Please draw your prediction first', 'warning');
         return;
     }
+
+    // Check if on correct network
+    if (!Web3Integration.isOnCorrectNetwork()) {
+        showNotification('Please switch to Sepolia testnet', 'warning');
+        try {
+            await Web3Integration.switchNetwork('sepolia');
+        } catch (error) {
+            console.error('Failed to switch network:', error);
+        }
+        return;
+    }
+
+    // Check if contract is available
+    const hasContract = Web3Integration.state.contract !== null;
 
     // Create prediction object
     const prediction = {
@@ -1049,9 +1073,37 @@ async function submitPrediction() {
         drawingPath: [...state.drawingPath]
     };
 
+    // Show transaction modal
+    showTransactionModal('pending', 'Submitting Prediction', 'Please confirm the transaction in your wallet...');
+
     try {
-        // Save to backend
-        const result = await savePrediction(prediction);
+        if (hasContract) {
+            // Submit to blockchain
+            const stakeInEth = (state.stakeAmount / 1000).toFixed(4); // Convert USDC value to ETH (simplified)
+            const result = await Web3Integration.createOnChainPrediction(
+                state.selectedAsset,
+                state.lastPrice,
+                state.predictedPrice,
+                getEndDate(),
+                stakeInEth
+            );
+
+            prediction.onChainId = result.predictionId;
+            prediction.transactionHash = result.transactionHash;
+            prediction.isOnChain = true;
+
+            // Update modal with success
+            showTransactionModal('success', 'Prediction Submitted!',
+                'Your prediction has been recorded on the blockchain.',
+                result.transactionHash
+            );
+        } else {
+            // No contract deployed - save locally only
+            await savePrediction(prediction);
+            showTransactionModal('success', 'Prediction Saved',
+                'Contract not deployed yet. Prediction saved locally for testing.'
+            );
+        }
 
         // Add to local state
         state.predictions.unshift(prediction);
@@ -1060,10 +1112,55 @@ async function submitPrediction() {
         renderPredictionsList();
         clearDrawing();
 
-        alert('Prediction submitted successfully!');
     } catch (error) {
         console.error('Failed to submit prediction:', error);
-        alert('Failed to submit prediction. Please try again.');
+        showTransactionModal('error', 'Transaction Failed', error.message || 'Failed to submit prediction');
+    }
+}
+
+function showTransactionModal(status, title, message, txHash = null) {
+    // Remove existing modal
+    let modal = document.getElementById('txModalOverlay');
+    if (modal) modal.remove();
+
+    // Create modal HTML
+    const iconSvg = status === 'pending'
+        ? '<svg class="tx-modal-icon loading" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.3"/><path d="M12 2C6.5 2 2 6.5 2 12" stroke="var(--color-accent-primary)" stroke-width="2" stroke-linecap="round"/></svg>'
+        : status === 'success'
+            ? '<svg class="tx-modal-icon success" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M8 12L11 15L16 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            : '<svg class="tx-modal-icon error" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/><path d="M15 9L9 15M9 9L15 15" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>';
+
+    const explorerLink = txHash && Web3Integration.getExplorerUrl(txHash)
+        ? `<a href="${Web3Integration.getExplorerUrl(txHash)}" target="_blank" class="tx-modal-link">
+            View on Etherscan
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M18 13V19C18 20.1 17.1 21 16 21H5C3.9 21 3 20.1 3 19V8C3 6.9 3.9 6 5 6H11" stroke="currentColor" stroke-width="2"/><path d="M15 3H21V9" stroke="currentColor" stroke-width="2"/><path d="M10 14L21 3" stroke="currentColor" stroke-width="2"/></svg>
+           </a>`
+        : '';
+
+    const closeBtn = status !== 'pending'
+        ? `<button class="tx-modal-btn" onclick="document.getElementById('txModalOverlay').classList.remove('show')">Close</button>`
+        : '';
+
+    modal = document.createElement('div');
+    modal.id = 'txModalOverlay';
+    modal.className = 'tx-modal-overlay show';
+    modal.innerHTML = `
+        <div class="tx-modal">
+            ${iconSvg}
+            <h3 class="tx-modal-title">${title}</h3>
+            <p class="tx-modal-message">${message}</p>
+            ${explorerLink}
+            ${closeBtn}
+        </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    // Close on overlay click (not for pending)
+    if (status !== 'pending') {
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('show');
+        });
     }
 }
 
@@ -1198,25 +1295,31 @@ function handleResize() {
 // ================================================
 
 async function connectWallet() {
-    if (typeof window.ethereum !== 'undefined') {
-        try {
-            const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
-            handleWalletConnected(accounts[0]);
-        } catch (error) {
-            console.error('Failed to connect wallet:', error);
-        }
-    } else {
-        // Mock connection
-        const mockAddress = '0x' + Array(40).fill(0).map(() => Math.floor(Math.random() * 16).toString(16)).join('');
-        handleWalletConnected(mockAddress);
+    // Check if Web3 is available
+    if (!Web3Integration.isWeb3Available()) {
+        showNotification('Please install MetaMask or another Web3 wallet', 'error');
+        // Open MetaMask download page
+        window.open('https://metamask.io/download/', '_blank');
+        return;
+    }
+
+    try {
+        const result = await Web3Integration.connectWeb3Wallet();
+        handleWalletConnected(result.address, result.network);
+
+        // Load on-chain predictions
+        await loadOnChainPredictions();
+    } catch (error) {
+        console.error('Failed to connect wallet:', error);
+        showNotification(error.message || 'Failed to connect wallet', 'error');
     }
 }
 
-function handleWalletConnected(address) {
+function handleWalletConnected(address, network) {
     state.connected = true;
     state.address = address;
 
-    const shortAddress = `${address.slice(0, 6)}...${address.slice(-4)}`;
+    const shortAddress = Web3Integration.formatAddress(address);
 
     if (elements.connectWalletBtn) {
         elements.connectWalletBtn.innerHTML = `
@@ -1225,7 +1328,123 @@ function handleWalletConnected(address) {
         `;
     }
 
+    // Show network badge
+    const networkBadge = document.getElementById('networkBadge');
+    const networkName = document.getElementById('networkName');
+    if (networkBadge && networkName) {
+        networkBadge.style.display = 'flex';
+        networkName.textContent = Web3Integration.getNetworkName();
+
+        // Check if on correct network
+        if (!Web3Integration.isOnCorrectNetwork()) {
+            networkBadge.classList.add('wrong-network');
+            showNotification('Please switch to Sepolia testnet', 'warning');
+        } else {
+            networkBadge.classList.remove('wrong-network');
+        }
+    }
+
     updateSubmitButton();
+}
+
+// Setup Web3 event listeners
+function setupWeb3EventListeners() {
+    window.addEventListener('web3AccountChanged', (e) => {
+        handleWalletConnected(e.detail.address, Web3Integration.state.network);
+    });
+
+    window.addEventListener('web3ChainChanged', (e) => {
+        const networkBadge = document.getElementById('networkBadge');
+        const networkName = document.getElementById('networkName');
+        if (networkBadge && networkName) {
+            networkName.textContent = Web3Integration.getNetworkName();
+            if (!Web3Integration.isOnCorrectNetwork()) {
+                networkBadge.classList.add('wrong-network');
+                showNotification('Please switch to Sepolia testnet', 'warning');
+            } else {
+                networkBadge.classList.remove('wrong-network');
+            }
+        }
+    });
+
+    window.addEventListener('web3Disconnected', () => {
+        state.connected = false;
+        state.address = null;
+        const networkBadge = document.getElementById('networkBadge');
+        if (networkBadge) networkBadge.style.display = 'none';
+
+        if (elements.connectWalletBtn) {
+            elements.connectWalletBtn.innerHTML = `
+                <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
+                    <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                    <path d="M16 13.5C16 14.3284 15.3284 15 14.5 15C13.6716 15 13 14.3284 13 13.5C13 12.6716 13.6716 12 14.5 12C15.3284 12 16 12.6716 16 13.5Z" fill="currentColor"/>
+                    <path d="M6 6V5C6 3.89543 6.89543 3 8 3H18C19.1046 3 20 3.89543 20 5V6" stroke="currentColor" stroke-width="2"/>
+                </svg>
+                Connect Wallet
+            `;
+        }
+        updateSubmitButton();
+    });
+}
+
+async function loadOnChainPredictions() {
+    if (!Web3Integration.state.contract) return;
+
+    try {
+        const onChainPredictions = await Web3Integration.getUserOnChainPredictions();
+        // Merge with local predictions
+        for (const pred of onChainPredictions) {
+            const exists = state.predictions.find(p => p.onChainId === pred.id);
+            if (!exists) {
+                state.predictions.push({
+                    id: pred.id,
+                    onChainId: pred.id,
+                    asset: pred.asset,
+                    assetName: ASSETS[pred.asset]?.name || pred.asset,
+                    startPrice: pred.startPrice,
+                    predictedPrice: pred.predictedPrice,
+                    stake: parseFloat(pred.stakeAmount),
+                    createdAt: pred.createdAt.toISOString(),
+                    endsAt: pred.expiresAt.toISOString(),
+                    status: pred.settled ? (pred.won ? 'won' : 'lost') : 'pending',
+                    isOnChain: true
+                });
+            }
+        }
+        renderPredictionsList();
+    } catch (error) {
+        console.error('Failed to load on-chain predictions:', error);
+    }
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    let notification = document.getElementById('web3Notification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'web3Notification';
+        notification.className = 'prediction-locked-notification';
+        document.body.appendChild(notification);
+    }
+
+    // Set style based on type
+    if (type === 'error') {
+        notification.style.borderColor = 'var(--color-error)';
+        notification.style.color = 'var(--color-error)';
+    } else if (type === 'warning') {
+        notification.style.borderColor = 'var(--color-warning)';
+        notification.style.color = 'var(--color-warning)';
+    } else {
+        notification.style.borderColor = 'var(--color-accent-primary)';
+        notification.style.color = 'var(--color-accent-primary)';
+    }
+
+    notification.innerHTML = `<span>${message}</span>`;
+    notification.classList.add('show');
+
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 4000);
 }
 
 // ================================================

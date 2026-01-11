@@ -6,9 +6,16 @@
   "scripts": {
     "dev": "node server/index.js",
     "start": "NODE_ENV=production node server/index.js",
-    "dev:frontend": "npx serve public -p 3001"
+    "dev:frontend": "npx serve public -p 3001",
+    "compile": "npx hardhat compile",
+    "test": "npx hardhat test",
+    "deploy:local": "npx hardhat run scripts/deploy.js --network localhost",
+    "deploy:sepolia": "npx hardhat run scripts/deploy.js --network sepolia",
+    "deploy:holesky": "npx hardhat run scripts/deploy.js --network holesky",
+    "node": "npx hardhat node",
+    "verify": "npx hardhat verify --network sepolia"
   },
-  "keywords": ["dex", "crypto", "exchange", "defi", "web3"],
+  "keywords": ["dex", "crypto", "exchange", "defi", "web3", "ethereum", "predictions"],
   "author": "",
   "license": "MIT",
   "dependencies": {
@@ -21,6 +28,8 @@
     "ws": "^8.14.2"
   },
   "devDependencies": {
+    "@nomicfoundation/hardhat-toolbox": "^4.0.0",
+    "hardhat": "^2.19.4",
     "nodemon": "^3.0.2"
   }
 }

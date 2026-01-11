@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
 </head>
 <body>
     <!-- Header -->
@@ -39,6 +40,10 @@
             </nav>
 
             <div class="header-actions">
+                <div class="network-badge" id="networkBadge" style="display: none;">
+                    <span class="network-dot"></span>
+                    <span class="network-name" id="networkName">Sepolia</span>
+                </div>
                 <button class="connect-wallet-btn" id="connectWalletBtn">
                     <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
                         <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
@@ -337,6 +342,7 @@
         </section>
     </main>
 
+    <script src="js/web3.js"></script>
     <script src="js/predictions.js"></script>
 </body>
 </html>

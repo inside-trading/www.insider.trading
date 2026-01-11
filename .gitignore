@@ -27,3 +27,12 @@ build/
 
 # Coverage
 coverage/
+
+# Hardhat
+cache/
+artifacts/
+typechain-types/
+
+# Deployment secrets (never commit!)
+deployments/*.json
+!deployments/.gitkeep
