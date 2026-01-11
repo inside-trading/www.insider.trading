@@ -335,25 +335,77 @@
     animation: spin 1s linear infinite;
 }
 
+/* Draggable Divider */
 .prediction-divider {
-    width: 2px;
-    background: var(--color-accent-primary);
+    width: 12px;
+    background: transparent;
     position: relative;
-    z-index: 10;
+    z-index: 20;
+    cursor: ew-resize;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 -5px;
 }
 
-.divider-line {
+.prediction-divider::before {
+    content: '';
     position: absolute;
     top: 0;
     bottom: 0;
-    left: 0;
+    left: 50%;
     width: 2px;
+    transform: translateX(-50%);
     background: linear-gradient(to bottom, var(--color-accent-primary), var(--color-accent-secondary));
 }
 
-.divider-label {
+.prediction-divider:hover::before,
+.prediction-divider.dragging::before {
+    width: 4px;
+    box-shadow: 0 0 12px var(--color-accent-primary);
+}
+
+.divider-handle {
     position: absolute;
-    top: -28px;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 24px;
+    height: 48px;
+    background: var(--color-bg-card);
+    border: 2px solid var(--color-accent-primary);
+    border-radius: var(--radius-md);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 3px;
+    transition: all 0.2s ease;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.prediction-divider:hover .divider-handle,
+.prediction-divider.dragging .divider-handle {
+    background: var(--color-accent-primary);
+    transform: translate(-50%, -50%) scale(1.1);
+    box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
+}
+
+.handle-grip {
+    width: 12px;
+    height: 2px;
+    background: var(--color-accent-primary);
+    border-radius: 1px;
+}
+
+.prediction-divider:hover .handle-grip,
+.prediction-divider.dragging .handle-grip {
+    background: var(--color-bg-primary);
+}
+
+.divider-date {
+    position: absolute;
+    bottom: -32px;
     left: 50%;
     transform: translateX(-50%);
     white-space: nowrap;
@@ -361,8 +413,10 @@
     font-weight: 600;
     color: var(--color-accent-primary);
     background: var(--color-bg-card);
-    padding: 4px 8px;
-    border-radius: var(--radius-sm);
+    padding: 4px 10px;
+    border-radius: var(--radius-full);
+    border: 1px solid var(--color-accent-primary);
+    pointer-events: none;
 }
 
 .prediction-area {
@@ -436,14 +490,13 @@
     text-align: right;
 }
 
-/* X-Axis Labels */
-.x-axis-labels {
+/* Unified X-Axis */
+.unified-x-axis {
     position: relative;
     height: 30px;
-    margin-top: 8px;
-    margin-left: calc(65% + 2px); /* Dynamically adjusted by JS based on timeframe */
-    margin-right: 0;
-    transition: margin-left 0.3s ease;
+    margin-top: 12px;
+    display: flex;
+    align-items: flex-start;
 }
 
 .x-axis-label {
@@ -452,6 +505,7 @@
     font-size: 11px;
     color: var(--color-text-tertiary);
     white-space: nowrap;
+    transition: left 0.1s ease;
 }
 
 .x-axis-label:first-child {
@@ -460,6 +514,16 @@
 
 .x-axis-label:last-child {
     transform: translateX(-100%);
+}
+
+.x-axis-label.divider-label {
+    color: var(--color-accent-primary);
+    font-weight: 600;
+}
+
+.x-axis-label.future {
+    color: var(--color-text-tertiary);
+    opacity: 0.7;
 }
 
 /* Prediction locked notification */
@@ -930,8 +994,12 @@
         border-radius: 0 0 var(--radius-md) var(--radius-md);
     }
 
-    .x-axis-labels {
-        margin-left: 0;
+    .unified-x-axis {
+        margin-top: 8px;
+    }
+
+    .divider-date {
+        display: none;
     }
 }
 

@@ -53,7 +53,11 @@ const state = {
     targetPrice: null,
     connected: false,
     address: null,
-    predictions: []
+    predictions: [],
+    // Divider state
+    dividerPosition: 0.5, // 0 to 1, percentage from left
+    isDraggingDivider: false,
+    dividerDate: new Date() // The date at the divider position
 };
 
 // DOM Elements
@@ -84,7 +88,12 @@ const elements = {
     eraseBtn: document.getElementById('eraseBtn'),
     clearBtn: document.getElementById('clearBtn'),
     undoBtn: document.getElementById('undoBtn'),
-    targetPriceInput: document.getElementById('targetPriceInput')
+    targetPriceInput: document.getElementById('targetPriceInput'),
+    chartWrapper: document.getElementById('chartWrapper'),
+    predictionDivider: document.getElementById('predictionDivider'),
+    dividerDate: document.getElementById('dividerDate'),
+    unifiedXAxis: document.getElementById('unifiedXAxis'),
+    predictionArea: document.getElementById('predictionArea')
 };
 
 // Canvas context
@@ -103,6 +112,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initializeApp() {
     setupCanvas();
     setupEventListeners();
+    initializeDividerPosition();
     await loadChartData();
     loadPredictions();
     updatePayoffDisplay();
@@ -141,6 +151,9 @@ function setupEventListeners() {
     // Canvas events
     setupCanvasEvents();
 
+    // Divider drag events
+    setupDividerEvents();
+
     // Submit button
     elements.submitPredictionBtn?.addEventListener('click', submitPrediction);
 
@@ -149,6 +162,106 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', debounce(handleResize, 250));
+}
+
+function setupDividerEvents() {
+    const divider = elements.predictionDivider;
+    if (!divider) return;
+
+    // Mouse events
+    divider.addEventListener('mousedown', startDividerDrag);
+    document.addEventListener('mousemove', dragDivider);
+    document.addEventListener('mouseup', stopDividerDrag);
+
+    // Touch events
+    divider.addEventListener('touchstart', startDividerDrag, { passive: false });
+    document.addEventListener('touchmove', dragDivider, { passive: false });
+    document.addEventListener('touchend', stopDividerDrag);
+}
+
+function startDividerDrag(e) {
+    e.preventDefault();
+    state.isDraggingDivider = true;
+    elements.predictionDivider?.classList.add('dragging');
+    document.body.style.cursor = 'ew-resize';
+    document.body.style.userSelect = 'none';
+}
+
+function dragDivider(e) {
+    if (!state.isDraggingDivider) return;
+    e.preventDefault();
+
+    const wrapper = elements.chartWrapper;
+    if (!wrapper) return;
+
+    const rect = wrapper.getBoundingClientRect();
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+
+    // Calculate position as percentage (clamped between 0.15 and 0.85)
+    let position = (clientX - rect.left) / rect.width;
+    position = Math.max(0.15, Math.min(0.85, position));
+
+    state.dividerPosition = position;
+
+    // Update layout immediately
+    updateDividerLayout();
+    updateDividerDate();
+    renderUnifiedXAxis();
+
+    // Clear drawing when divider moves
+    if (state.drawingPath.length > 0) {
+        clearDrawing();
+    }
+}
+
+function stopDividerDrag() {
+    if (state.isDraggingDivider) {
+        state.isDraggingDivider = false;
+        elements.predictionDivider?.classList.remove('dragging');
+        document.body.style.cursor = '';
+        document.body.style.userSelect = '';
+
+        // Resize canvas after drag ends
+        resizeCanvas();
+        setupPredictionCanvas();
+    }
+}
+
+function updateDividerLayout() {
+    const chartArea = elements.chartArea;
+    const predictionArea = elements.predictionArea;
+
+    if (chartArea && predictionArea) {
+        chartArea.style.flex = state.dividerPosition.toString();
+        predictionArea.style.flex = (1 - state.dividerPosition).toString();
+    }
+}
+
+function updateDividerDate() {
+    const config = WINDOWS[state.selectedWindow];
+    const totalDays = config.historicalDays + config.days;
+
+    // Calculate the date at divider position
+    // Position 0 = oldest historical, Position 1 = end of prediction
+    const daysFromStart = state.dividerPosition * totalDays;
+    const daysFromNow = daysFromStart - config.historicalDays;
+
+    const dividerDate = new Date();
+    dividerDate.setDate(dividerDate.getDate() + daysFromNow);
+    state.dividerDate = dividerDate;
+
+    // Update display
+    if (elements.dividerDate) {
+        if (Math.abs(daysFromNow) < 1) {
+            elements.dividerDate.textContent = 'Today';
+        } else {
+            elements.dividerDate.textContent = dividerDate.toLocaleDateString('en-US', {
+                month: 'short',
+                day: 'numeric',
+                year: dividerDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
+            });
+        }
+    }
 }
 
 function setupCanvasEvents() {
@@ -433,51 +546,79 @@ function resizeCanvas() {
 }
 
 function setupPredictionCanvas() {
-    // Adjust canvas width based on timeframe
-    updateCanvasWidth();
+    // Update divider layout
+    updateDividerLayout();
+    updateDividerDate();
 
     resizeCanvas();
 
     // Draw grid and price markers
     drawGrid();
 
-    // Render axis labels
-    renderXAxis();
+    // Render unified x-axis and y-axis labels
+    renderUnifiedXAxis();
     renderYAxisLabels();
 }
 
-function updateCanvasWidth() {
-    const predictionArea = document.getElementById('predictionArea');
-    const xAxisLabels = document.getElementById('xAxisLabels');
-    if (!predictionArea) return;
-
-    // Width ratios based on timeframe (relative to chart area)
-    // Shorter timeframes = narrower canvas, longer = wider
-    const widthRatios = {
-        '1D': 0.25,   // 25% - very short term
-        '1W': 0.35,   // 35% - short term
-        '1M': 0.45,   // 45% - medium term
-        '1Y': 0.55,   // 55% - long term
-        '3Y': 0.65,   // 65% - longer term
-        '5Y': 0.75,   // 75% - very long term
-        '10Y': 0.85   // 85% - longest term
+function initializeDividerPosition() {
+    // Set initial divider position based on timeframe
+    // More historical data for shorter timeframes, more prediction space for longer
+    const initialPositions = {
+        '1D': 0.7,    // 70% history, 30% prediction
+        '1W': 0.6,    // 60% history, 40% prediction
+        '1M': 0.55,   // 55% history, 45% prediction
+        '1Y': 0.5,    // 50% history, 50% prediction
+        '3Y': 0.45,   // 45% history, 55% prediction
+        '5Y': 0.4,    // 40% history, 60% prediction
+        '10Y': 0.35   // 35% history, 65% prediction
     };
 
-    const ratio = widthRatios[state.selectedWindow] || 0.35;
-    const chartRatio = 1 - ratio;
+    state.dividerPosition = initialPositions[state.selectedWindow] || 0.5;
+}
 
-    // Update flex values for chart and prediction areas
-    const chartArea = document.getElementById('chartArea');
-    if (chartArea) {
-        chartArea.style.flex = chartRatio.toString();
-    }
-    predictionArea.style.flex = ratio.toString();
+function renderUnifiedXAxis() {
+    const container = elements.unifiedXAxis;
+    if (!container) return;
 
-    // Update x-axis margin to align with prediction area
-    if (xAxisLabels) {
-        const marginPercent = (chartRatio / (chartRatio + ratio)) * 100;
-        xAxisLabels.style.marginLeft = `calc(${marginPercent}% + 2px)`;
+    const config = WINDOWS[state.selectedWindow];
+    const totalDays = config.historicalDays + config.days;
+
+    // Generate labels for the entire timeline
+    const numLabels = 7;
+    const labels = [];
+
+    for (let i = 0; i < numLabels; i++) {
+        const position = i / (numLabels - 1); // 0 to 1
+        const daysFromStart = position * totalDays;
+        const daysFromNow = daysFromStart - config.historicalDays;
+
+        const date = new Date();
+        date.setDate(date.getDate() + daysFromNow);
+
+        let label;
+        let isFuture = daysFromNow > 0;
+        let isNear = Math.abs(daysFromNow) < 1;
+
+        if (isNear) {
+            label = 'Today';
+        } else if (totalDays <= 30) {
+            label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } else if (totalDays <= 365) {
+            label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        } else {
+            label = date.getFullYear().toString();
+        }
+
+        labels.push({ label, position: position * 100, isFuture, isNear });
     }
+
+    container.innerHTML = labels.map((item, index) => {
+        const classes = ['x-axis-label'];
+        if (item.isFuture) classes.push('future');
+        if (item.isNear) classes.push('divider-label');
+
+        return `<span class="${classes.join(' ')}" style="left: ${item.position}%">${item.label}</span>`;
+    }).join('');
 }
 
 function drawGrid() {
@@ -523,72 +664,6 @@ function drawGrid() {
     ctx.beginPath();
     ctx.arc(0, startY, 6, 0, Math.PI * 2);
     ctx.fill();
-}
-
-function renderXAxis() {
-    const xAxisContainer = document.getElementById('xAxisLabels');
-    if (!xAxisContainer) return;
-
-    const config = WINDOWS[state.selectedWindow];
-    const predictionDays = config.days;
-
-    // Generate time labels based on prediction window
-    const labels = generateTimeLabels(predictionDays);
-
-    xAxisContainer.innerHTML = labels.map((label, index) => {
-        const percentage = (index / (labels.length - 1)) * 100;
-        return `<span class="x-axis-label" style="left: ${percentage}%">${label}</span>`;
-    }).join('');
-}
-
-function generateTimeLabels(days) {
-    const now = new Date();
-    const labels = [];
-    const numLabels = 5; // Number of labels on x-axis
-
-    for (let i = 0; i < numLabels; i++) {
-        const targetDate = new Date(now);
-        const daysToAdd = Math.round((days / (numLabels - 1)) * i);
-        targetDate.setDate(targetDate.getDate() + daysToAdd);
-
-        let label;
-        if (days <= 1) {
-            // For 1 day, show hours
-            const hours = Math.round((24 / (numLabels - 1)) * i);
-            label = `+${hours}h`;
-        } else if (days <= 7) {
-            // For 1 week, show day names
-            if (i === 0) {
-                label = 'Today';
-            } else {
-                label = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
-            }
-        } else if (days <= 30) {
-            // For 1 month, show dates
-            if (i === 0) {
-                label = 'Today';
-            } else {
-                label = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-            }
-        } else if (days <= 365) {
-            // For 1 year, show month/year
-            if (i === 0) {
-                label = 'Now';
-            } else {
-                label = targetDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
-            }
-        } else {
-            // For multi-year, show years
-            if (i === 0) {
-                label = now.getFullYear().toString();
-            } else {
-                label = targetDate.getFullYear().toString();
-            }
-        }
-        labels.push(label);
-    }
-
-    return labels;
 }
 
 function startDrawing(e) {
@@ -1097,6 +1172,7 @@ async function handleAssetChange(e) {
 
 async function handleWindowChange(e) {
     state.selectedWindow = e.target.value;
+    initializeDividerPosition();
     clearDrawing();
     await loadChartData();
 }
