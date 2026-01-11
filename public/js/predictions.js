@@ -54,7 +54,9 @@ const state = {
     address: null,
     predictions: [],
     // Chart Y-axis range (synced with TradingView)
-    visiblePriceRange: { min: 0, max: 0 }
+    visiblePriceRange: { min: 0, max: 0 },
+    // Expiry date (calculated from scroll position)
+    expiryDate: null
 };
 
 // DOM Elements
@@ -89,7 +91,9 @@ const elements = {
     timelineContent: document.getElementById('timelineContent'),
     nowDivider: document.getElementById('nowDivider'),
     unifiedXAxis: document.getElementById('unifiedXAxis'),
-    predictionArea: document.getElementById('predictionArea')
+    predictionArea: document.getElementById('predictionArea'),
+    expiryDisplay: document.getElementById('expiryDisplay'),
+    expiryDate: document.getElementById('expiryDate')
 };
 
 // Canvas context
@@ -148,6 +152,9 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', debounce(handleResize, 250));
+
+    // Timeline scroll - update expiry date
+    elements.timelineScrollContainer?.addEventListener('scroll', debounce(updateExpiryFromScroll, 50));
 }
 
 function scrollToNow() {
@@ -163,6 +170,97 @@ function scrollToNow() {
         const scrollTarget = dividerOffset - (containerWidth * 0.4);
         container.scrollLeft = Math.max(0, scrollTarget);
     }
+
+    // Initial expiry calculation
+    updateExpiryFromScroll();
+}
+
+function updateExpiryFromScroll() {
+    const container = elements.timelineScrollContainer;
+    const predictionArea = elements.predictionArea;
+    const nowDivider = elements.nowDivider;
+
+    if (!container || !predictionArea || !nowDivider) return;
+
+    const config = WINDOWS[state.selectedWindow];
+
+    // Calculate where the right edge of visible area falls in the prediction area
+    const containerWidth = container.clientWidth;
+    const scrollLeft = container.scrollLeft;
+    const visibleRightEdge = scrollLeft + containerWidth;
+
+    // Get the position where the prediction area starts (after now divider)
+    const predictionAreaStart = nowDivider.offsetLeft + nowDivider.offsetWidth;
+    const predictionAreaWidth = predictionArea.offsetWidth;
+
+    // Calculate how far into the prediction area the right edge is
+    const distanceIntoPrediction = visibleRightEdge - predictionAreaStart;
+
+    // Calculate the ratio (0 = start of prediction area, 1 = end)
+    const ratio = Math.max(0, Math.min(1, distanceIntoPrediction / predictionAreaWidth));
+
+    // Calculate the expiry date based on the ratio and prediction window
+    const now = new Date();
+    const daysIntoFuture = ratio * config.days;
+    const expiryDate = new Date(now.getTime() + (daysIntoFuture * 24 * 60 * 60 * 1000));
+
+    // Store expiry date in state
+    state.expiryDate = expiryDate;
+
+    // Update the display
+    updateExpiryDisplay(expiryDate);
+
+    // Also update the "Prediction Ends" field
+    if (elements.predictionEnds) {
+        elements.predictionEnds.textContent = formatExpiryDate(expiryDate);
+    }
+}
+
+function updateExpiryDisplay(date) {
+    if (!elements.expiryDate) return;
+
+    const formattedDate = formatExpiryDate(date);
+    elements.expiryDate.textContent = formattedDate;
+
+    // Add visual feedback
+    elements.expiryDisplay?.classList.add('updated');
+    setTimeout(() => {
+        elements.expiryDisplay?.classList.remove('updated');
+    }, 200);
+}
+
+function formatExpiryDate(date) {
+    const now = new Date();
+    const diffMs = date - now;
+    const diffDays = Math.round(diffMs / (24 * 60 * 60 * 1000));
+
+    // Format date
+    const dateStr = date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined
+    });
+
+    // Add relative time
+    let relativeStr;
+    if (diffDays === 0) {
+        relativeStr = 'Today';
+    } else if (diffDays === 1) {
+        relativeStr = 'Tomorrow';
+    } else if (diffDays < 7) {
+        relativeStr = `${diffDays} days`;
+    } else if (diffDays < 30) {
+        const weeks = Math.round(diffDays / 7);
+        relativeStr = `${weeks} week${weeks > 1 ? 's' : ''}`;
+    } else if (diffDays < 365) {
+        const months = Math.round(diffDays / 30);
+        relativeStr = `${months} month${months > 1 ? 's' : ''}`;
+    } else {
+        const years = Math.round(diffDays / 365);
+        relativeStr = `${years} year${years > 1 ? 's' : ''}`;
+    }
+
+    return `${dateStr} (${relativeStr})`;
 }
 
 function setupCanvasEvents() {
@@ -850,16 +948,14 @@ function updatePredictedPrice() {
 }
 
 function updatePredictionEndDate() {
-    const config = WINDOWS[state.selectedWindow];
-    const endDate = new Date();
-    endDate.setDate(endDate.getDate() + config.days);
-
-    if (elements.predictionEnds) {
-        elements.predictionEnds.textContent = endDate.toLocaleDateString('en-US', {
-            month: 'short',
-            day: 'numeric',
-            year: 'numeric'
-        });
+    // Use the scroll-based expiry date if available, otherwise calculate from scroll
+    if (state.expiryDate) {
+        if (elements.predictionEnds) {
+            elements.predictionEnds.textContent = formatExpiryDate(state.expiryDate);
+        }
+    } else {
+        // Trigger scroll-based calculation
+        updateExpiryFromScroll();
     }
 }
 
@@ -1153,6 +1249,11 @@ function formatCurrency(value) {
 }
 
 function getEndDate() {
+    // Use the scroll-based expiry date if available
+    if (state.expiryDate) {
+        return new Date(state.expiryDate);
+    }
+    // Fallback to window config
     const config = WINDOWS[state.selectedWindow];
     const endDate = new Date();
     endDate.setDate(endDate.getDate() + config.days);

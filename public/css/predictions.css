@@ -239,6 +239,35 @@
     color: var(--color-error);
 }
 
+/* Expiry Date Display */
+.expiry-display {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: linear-gradient(135deg, rgba(0, 212, 170, 0.15), rgba(123, 97, 255, 0.15));
+    border: 1px solid var(--color-accent-primary);
+    border-radius: var(--radius-md);
+    margin-bottom: 12px;
+}
+
+.expiry-label {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--color-text-secondary);
+}
+
+.expiry-date {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--color-accent-primary);
+    transition: all 0.2s ease;
+}
+
+.expiry-display.updated .expiry-date {
+    transform: scale(1.05);
+}
+
 /* Scrollable Timeline Container */
 .timeline-scroll-container {
     position: relative;
