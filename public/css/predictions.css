@@ -381,7 +381,59 @@
 
 /* X-Axis Labels */
 .x-axis-labels {
-    display: none; /* Using chart's built-in axis */
+    position: relative;
+    height: 30px;
+    margin-top: 8px;
+    margin-left: calc(66.66% + 2px); /* Align with prediction area (flex: 2 + flex: 1 ratio) */
+    margin-right: 0;
+}
+
+.x-axis-label {
+    position: absolute;
+    transform: translateX(-50%);
+    font-size: 11px;
+    color: var(--color-text-tertiary);
+    white-space: nowrap;
+}
+
+.x-axis-label:first-child {
+    transform: translateX(0);
+}
+
+.x-axis-label:last-child {
+    transform: translateX(-100%);
+}
+
+/* Prediction locked notification */
+.prediction-locked-notification {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(100px);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 24px;
+    background: var(--color-bg-card);
+    border: 1px solid var(--color-accent-primary);
+    border-radius: var(--radius-full);
+    color: var(--color-accent-primary);
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 8px 32px rgba(0, 212, 170, 0.2);
+    z-index: 1000;
+    opacity: 0;
+    transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.prediction-locked-notification.show {
+    transform: translateX(-50%) translateY(0);
+    opacity: 1;
+}
+
+/* Locked canvas styling */
+#predictionCanvas.locked {
+    cursor: not-allowed !important;
 }
 
 /* Drawing Tools */
@@ -834,6 +886,10 @@
         width: 1px;
         height: auto;
         margin: 0 4px;
+    }
+
+    .x-axis-labels {
+        margin-left: 0;
     }
 }
 

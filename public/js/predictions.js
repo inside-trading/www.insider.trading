@@ -48,6 +48,8 @@ const state = {
     drawingPath: [],
     drawingHistory: [],
     predictedPrice: null,
+    predictionLocked: false,
+    lastDrawnX: 0,
     connected: false,
     address: null,
     predictions: []
@@ -400,6 +402,9 @@ function setupPredictionCanvas() {
 
     // Draw grid and price markers
     drawGrid();
+
+    // Render x-axis labels
+    renderXAxis();
 }
 
 function drawGrid() {
@@ -447,8 +452,77 @@ function drawGrid() {
     ctx.fill();
 }
 
+function renderXAxis() {
+    const xAxisContainer = document.getElementById('xAxisLabels');
+    if (!xAxisContainer) return;
+
+    const config = WINDOWS[state.selectedWindow];
+    const predictionDays = config.days;
+
+    // Generate time labels based on prediction window
+    const labels = generateTimeLabels(predictionDays);
+
+    xAxisContainer.innerHTML = labels.map((label, index) => {
+        const percentage = (index / (labels.length - 1)) * 100;
+        return `<span class="x-axis-label" style="left: ${percentage}%">${label}</span>`;
+    }).join('');
+}
+
+function generateTimeLabels(days) {
+    const now = new Date();
+    const labels = [];
+    const numLabels = 5; // Number of labels on x-axis
+
+    for (let i = 0; i < numLabels; i++) {
+        const targetDate = new Date(now);
+        const daysToAdd = Math.round((days / (numLabels - 1)) * i);
+        targetDate.setDate(targetDate.getDate() + daysToAdd);
+
+        let label;
+        if (days <= 1) {
+            // For 1 day, show hours
+            const hours = Math.round((24 / (numLabels - 1)) * i);
+            label = `+${hours}h`;
+        } else if (days <= 7) {
+            // For 1 week, show day names
+            if (i === 0) {
+                label = 'Today';
+            } else {
+                label = targetDate.toLocaleDateString('en-US', { weekday: 'short' });
+            }
+        } else if (days <= 30) {
+            // For 1 month, show dates
+            if (i === 0) {
+                label = 'Today';
+            } else {
+                label = targetDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            }
+        } else if (days <= 365) {
+            // For 1 year, show month/year
+            if (i === 0) {
+                label = 'Now';
+            } else {
+                label = targetDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+            }
+        } else {
+            // For multi-year, show years
+            if (i === 0) {
+                label = now.getFullYear().toString();
+            } else {
+                label = targetDate.getFullYear().toString();
+            }
+        }
+        labels.push(label);
+    }
+
+    return labels;
+}
+
 function startDrawing(e) {
     if (state.activeTool === 'erase') return;
+
+    // Don't allow drawing if prediction is locked
+    if (state.predictionLocked) return;
 
     state.isDrawing = true;
 
@@ -465,24 +539,33 @@ function startDrawing(e) {
         // Start from current price level on left edge
         const startY = priceToY(state.lastPrice);
         state.drawingPath.push({ x: 0, y: startY });
+        state.lastDrawnX = 0;
     }
 
-    state.drawingPath.push(pos);
-    redrawCanvas();
+    // Only add point if it's forward from last drawn position
+    if (pos.x > state.lastDrawnX) {
+        state.drawingPath.push(pos);
+        state.lastDrawnX = pos.x;
+        redrawCanvas();
+        checkPredictionComplete();
+    }
 }
 
 function draw(e) {
     if (!state.isDrawing) return;
+    if (state.predictionLocked) return;
 
     const pos = getCanvasPosition(e);
 
-    // Only allow drawing to the right
-    const lastPoint = state.drawingPath[state.drawingPath.length - 1];
-    if (pos.x > lastPoint.x) {
+    // Only allow drawing forward (to the right) - ignore any leftward movement
+    if (pos.x > state.lastDrawnX) {
         state.drawingPath.push(pos);
+        state.lastDrawnX = pos.x;
         redrawCanvas();
         updatePredictedPrice();
+        checkPredictionComplete();
     }
+    // If user tries to move left, simply ignore it
 }
 
 function stopDrawing() {
@@ -491,6 +574,56 @@ function stopDrawing() {
         updatePredictedPrice();
         updateSubmitButton();
     }
+}
+
+function checkPredictionComplete() {
+    const canvas = elements.predictionCanvas;
+    if (!canvas) return;
+
+    // Lock prediction when drawing reaches near the right edge (within 10px)
+    const rightEdgeThreshold = canvas.width - 10;
+
+    if (state.lastDrawnX >= rightEdgeThreshold && !state.predictionLocked) {
+        state.predictionLocked = true;
+        state.isDrawing = false;
+
+        // Update canvas cursor to show it's locked
+        canvas.style.cursor = 'not-allowed';
+
+        // Draw the lock indicator
+        redrawCanvas();
+        updatePredictedPrice();
+        updateSubmitButton();
+
+        // Show a brief notification
+        showLockNotification();
+    }
+}
+
+function showLockNotification() {
+    // Create notification element if it doesn't exist
+    let notification = document.getElementById('predictionLockedNotification');
+    if (!notification) {
+        notification = document.createElement('div');
+        notification.id = 'predictionLockedNotification';
+        notification.className = 'prediction-locked-notification';
+        notification.innerHTML = `
+            <svg viewBox="0 0 24 24" fill="none" width="20" height="20">
+                <rect x="3" y="11" width="18" height="11" rx="2" stroke="currentColor" stroke-width="2"/>
+                <path d="M7 11V7C7 4.23858 9.23858 2 12 2C14.7614 2 17 4.23858 17 7V11" stroke="currentColor" stroke-width="2"/>
+            </svg>
+            <span>Prediction locked! Ready to submit.</span>
+        `;
+        document.body.appendChild(notification);
+    }
+
+    // Show notification
+    notification.classList.add('show');
+
+    // Hide after 3 seconds
+    setTimeout(() => {
+        notification.classList.remove('show');
+    }, 3000);
 }
 
 function handleTouchStart(e) {
@@ -564,6 +697,14 @@ function clearDrawing() {
     state.drawingHistory.push([...state.drawingPath]);
     state.drawingPath = [];
     state.predictedPrice = null;
+    state.predictionLocked = false;
+    state.lastDrawnX = 0;
+
+    // Reset canvas cursor
+    const canvas = elements.predictionCanvas;
+    if (canvas) {
+        canvas.style.cursor = 'crosshair';
+    }
 
     redrawCanvas();
     updatePredictedPrice();
@@ -575,6 +716,19 @@ function clearDrawing() {
 function undoDrawing() {
     if (state.drawingHistory.length > 0) {
         state.drawingPath = state.drawingHistory.pop();
+
+        // Reset locked state and recalculate lastDrawnX
+        state.predictionLocked = false;
+        state.lastDrawnX = state.drawingPath.length > 0
+            ? state.drawingPath[state.drawingPath.length - 1].x
+            : 0;
+
+        // Reset canvas cursor
+        const canvas = elements.predictionCanvas;
+        if (canvas) {
+            canvas.style.cursor = 'crosshair';
+        }
+
         redrawCanvas();
         updatePredictedPrice();
         updateSubmitButton();
