@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Predict asset prices and earn rewards based on accuracy">
+    <title>Price Predictions | Insider Trading</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <link rel="stylesheet" href="css/predictions.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="header">
+        <div class="header-container">
+            <a href="/" class="logo">
+                <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="20" cy="20" r="18" stroke="url(#logo-gradient)" stroke-width="3"/>
+                    <path d="M14 20L18 24L26 16" stroke="url(#logo-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                    <defs>
+                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
+                            <stop stop-color="#00D4AA"/>
+                            <stop offset="1" stop-color="#7B61FF"/>
+                        </linearGradient>
+                    </defs>
+                </svg>
+                <span class="logo-text">Insider Trading</span>
+            </a>
+
+            <nav class="nav">
+                <a href="/" class="nav-link">Swap</a>
+                <a href="/predictions.html" class="nav-link active">Predictions</a>
+                <a href="/#pools" class="nav-link">Pools</a>
+                <a href="/#tokens" class="nav-link">Tokens</a>
+            </nav>
+
+            <div class="header-actions">
+                <button class="connect-wallet-btn" id="connectWalletBtn">
+                    <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
+                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
+                        <path d="M16 13.5C16 14.3284 15.3284 15 14.5 15C13.6716 15 13 14.3284 13 13.5C13 12.6716 13.6716 12 14.5 12C15.3284 12 16 12.6716 16 13.5Z" fill="currentColor"/>
+                        <path d="M6 6V5C6 3.89543 6.89543 3 8 3H18C19.1046 3 20 3.89543 20 5V6" stroke="currentColor" stroke-width="2"/>
+                    </svg>
+                    Connect Wallet
+                </button>
+            </div>
+
+            <button class="mobile-menu-btn" id="mobileMenuBtn">
+                <span></span>
+                <span></span>
+                <span></span>
+            </button>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="main predictions-main">
+        <!-- Hero Section -->
+        <section class="predictions-hero">
+            <div class="predictions-hero-content">
+                <h1 class="predictions-title">Predict the <span class="gradient-text">Future</span></h1>
+                <p class="predictions-subtitle">Draw your price prediction and earn rewards based on accuracy</p>
+            </div>
+        </section>
+
+        <!-- Controls Section -->
+        <section class="predictions-controls">
+            <div class="controls-container">
+                <div class="control-group">
+                    <label class="control-label">Asset</label>
+                    <div class="select-wrapper">
+                        <select id="assetSelect" class="control-select">
+                            <optgroup label="Stocks">
+                                <option value="SPY">SPY - S&P 500 ETF</option>
+                                <option value="QQQ">QQQ - Nasdaq 100 ETF</option>
+                                <option value="AAPL">AAPL - Apple Inc.</option>
+                                <option value="TSLA">TSLA - Tesla Inc.</option>
+                                <option value="MSFT">MSFT - Microsoft</option>
+                                <option value="GOOGL">GOOGL - Alphabet</option>
+                                <option value="AMZN">AMZN - Amazon</option>
+                                <option value="NVDA">NVDA - NVIDIA</option>
+                                <option value="META">META - Meta Platforms</option>
+                            </optgroup>
+                            <optgroup label="Crypto">
+                                <option value="BTC-USD">Bitcoin (BTC)</option>
+                                <option value="ETH-USD">Ethereum (ETH)</option>
+                                <option value="SOL-USD">Solana (SOL)</option>
+                            </optgroup>
+                            <optgroup label="Commodities">
+                                <option value="GC=F">Gold</option>
+                                <option value="CL=F">Crude Oil</option>
+                            </optgroup>
+                        </select>
+                        <svg class="select-chevron" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Prediction Window</label>
+                    <div class="select-wrapper">
+                        <select id="windowSelect" class="control-select">
+                            <option value="1D">1 Day</option>
+                            <option value="1W" selected>1 Week</option>
+                            <option value="1M">1 Month</option>
+                            <option value="1Y">1 Year</option>
+                            <option value="3Y">3 Years</option>
+                            <option value="5Y">5 Years</option>
+                            <option value="10Y">10 Years</option>
+                        </select>
+                        <svg class="select-chevron" viewBox="0 0 24 24" fill="none">
+                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                </div>
+
+                <div class="control-group">
+                    <label class="control-label">Chart Type</label>
+                    <div class="chart-type-btns">
+                        <button class="chart-type-btn active" data-type="candlestick" title="Candlestick">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <rect x="10" y="4" width="4" height="16" rx="1" stroke="currentColor" stroke-width="2"/>
+                                <line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="2"/>
+                                <line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                        </button>
+                        <button class="chart-type-btn" data-type="line" title="Line">
+                            <svg viewBox="0 0 24 24" fill="none">
+                                <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="control-group stake-group">
+                    <label class="control-label">Stake Amount</label>
+                    <div class="stake-input-wrapper">
+                        <input type="number" id="stakeAmount" class="stake-input" value="100" min="1" step="1">
+                        <span class="stake-currency">USDC</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Chart Section -->
+        <section class="chart-section">
+            <div class="chart-container">
+                <!-- Asset Info Bar -->
+                <div class="asset-info-bar">
+                    <div class="asset-info-left">
+                        <span class="asset-symbol" id="assetSymbol">SPY</span>
+                        <span class="asset-name" id="assetName">S&P 500 ETF</span>
+                    </div>
+                    <div class="asset-info-right">
+                        <span class="asset-price" id="assetPrice">$0.00</span>
+                        <span class="asset-change positive" id="assetChange">+0.00%</span>
+                    </div>
+                </div>
+
+                <!-- Chart Area -->
+                <div class="chart-wrapper">
+                    <div class="chart-area" id="chartArea">
+                        <!-- Historical chart renders here -->
+                        <div class="chart-loading" id="chartLoading">
+                            <div class="loading-spinner"></div>
+                            <span>Loading chart data...</span>
+                        </div>
+                    </div>
+                    <div class="prediction-divider" id="predictionDivider">
+                        <div class="divider-line"></div>
+                        <div class="divider-label">Your Prediction</div>
+                    </div>
+                    <div class="prediction-area" id="predictionArea">
+                        <canvas id="predictionCanvas"></canvas>
+                        <div class="prediction-overlay" id="predictionOverlay">
+                            <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
+                                <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M2 2L9.586 9.586" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            <p>Draw your price prediction</p>
+                            <span class="hint">Click and drag to draw</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Y-Axis Labels -->
+                <div class="y-axis-labels" id="yAxisLabels">
+                    <!-- Generated by JS -->
+                </div>
+
+                <!-- X-Axis Labels -->
+                <div class="x-axis-labels" id="xAxisLabels">
+                    <!-- Generated by JS -->
+                </div>
+
+                <!-- Drawing Tools -->
+                <div class="drawing-tools">
+                    <button class="tool-btn active" id="drawBtn" title="Draw">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
+                            <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="eraseBtn" title="Erase">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M20 20H7L3 16C2.4 15.4 2.4 14.6 3 14L13 4C13.6 3.4 14.4 3.4 15 4L21 10C21.6 10.6 21.6 11.4 21 12L13 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M18 15L9 6" stroke="currentColor" stroke-width="2"/>
+                        </svg>
+                    </button>
+                    <button class="tool-btn" id="clearBtn" title="Clear All">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M8 6V4C8 3.4 8.4 3 9 3H15C15.6 3 16 3.4 16 4V6" stroke="currentColor" stroke-width="2"/>
+                            <path d="M19 6V20C19 20.6 18.6 21 18 21H6C5.4 21 5 20.6 5 20V6" stroke="currentColor" stroke-width="2"/>
+                            <path d="M10 11V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M14 11V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        </svg>
+                    </button>
+                    <div class="tool-divider"></div>
+                    <button class="tool-btn" id="undoBtn" title="Undo">
+                        <svg viewBox="0 0 24 24" fill="none">
+                            <path d="M3 10H16C18.7614 10 21 12.2386 21 15C21 17.7614 18.7614 20 16 20H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            <path d="M7 6L3 10L7 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Prediction Info Section -->
+        <section class="prediction-info-section">
+            <div class="prediction-info-container">
+                <div class="info-card">
+                    <h3 class="info-card-title">Prediction Details</h3>
+                    <div class="info-rows">
+                        <div class="info-row">
+                            <span class="info-label">Current Price</span>
+                            <span class="info-value" id="currentPrice">$0.00</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Your Predicted Price</span>
+                            <span class="info-value highlight" id="predictedPrice">Draw to predict</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Predicted Change</span>
+                            <span class="info-value" id="predictedChange">-</span>
+                        </div>
+                        <div class="info-row">
+                            <span class="info-label">Prediction Ends</span>
+                            <span class="info-value" id="predictionEnds">-</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="info-card">
+                    <h3 class="info-card-title">Potential Payoff</h3>
+                    <div class="payoff-display">
+                        <div class="payoff-amount" id="potentialPayoff">-</div>
+                        <div class="payoff-multiplier" id="payoffMultiplier">Up to 10x</div>
+                    </div>
+                    <div class="payoff-breakdown">
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Your Stake</span>
+                            <span class="breakdown-value" id="stakeDisplay">100 USDC</span>
+                        </div>
+                        <div class="breakdown-item">
+                            <span class="breakdown-label">Max Win</span>
+                            <span class="breakdown-value highlight" id="maxWin">1,000 USDC</span>
+                        </div>
+                    </div>
+                    <p class="payoff-note">Payoff scales with prediction accuracy. Perfect predictions earn maximum rewards.</p>
+                </div>
+
+                <div class="info-card">
+                    <h3 class="info-card-title">How Scoring Works</h3>
+                    <div class="scoring-tiers">
+                        <div class="tier">
+                            <span class="tier-range">±1%</span>
+                            <span class="tier-multiplier">10x</span>
+                        </div>
+                        <div class="tier">
+                            <span class="tier-range">±2.5%</span>
+                            <span class="tier-multiplier">5x</span>
+                        </div>
+                        <div class="tier">
+                            <span class="tier-range">±5%</span>
+                            <span class="tier-multiplier">2x</span>
+                        </div>
+                        <div class="tier">
+                            <span class="tier-range">±10%</span>
+                            <span class="tier-multiplier">1x</span>
+                        </div>
+                        <div class="tier">
+                            <span class="tier-range">>10%</span>
+                            <span class="tier-multiplier">0x</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Submit Section -->
+        <section class="submit-section">
+            <button class="submit-prediction-btn" id="submitPredictionBtn" disabled>
+                <span class="btn-text">Draw Your Prediction First</span>
+                <svg viewBox="0 0 24 24" fill="none" class="btn-icon">
+                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+            </button>
+        </section>
+
+        <!-- Active Predictions Section -->
+        <section class="active-predictions-section">
+            <div class="section-header-row">
+                <h2 class="section-title">Your Active Predictions</h2>
+            </div>
+            <div class="predictions-list" id="predictionsList">
+                <div class="empty-predictions">
+                    <svg viewBox="0 0 24 24" fill="none" class="empty-icon">
+                        <path d="M3 3V21H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                        <path d="M7 14L11 10L15 14L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <p>No active predictions</p>
+                    <span>Make your first prediction above!</span>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <!-- Footer -->
+    <footer class="footer predictions-footer">
+        <div class="footer-container">
+            <div class="footer-bottom">
+                <p class="copyright">&copy; 2024 Insider Trading. All rights reserved.</p>
+                <div class="footer-bottom-links">
+                    <a href="#" class="footer-bottom-link">Terms of Service</a>
+                    <a href="#" class="footer-bottom-link">Privacy Policy</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script src="js/predictions.js"></script>
+</body>
+</html>

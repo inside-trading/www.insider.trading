@@ -4,6 +4,8 @@ const router = express.Router();
 const tokensRouter = require('./tokens');
 const poolsRouter = require('./pools');
 const swapRouter = require('./swap');
+const pricesRouter = require('./prices');
+const predictionsRouter = require('./predictions');
 
 // Health check
 router.get('/health', (req, res) => {
@@ -19,6 +21,8 @@ router.get('/health', (req, res) => {
 router.use('/tokens', tokensRouter);
 router.use('/pools', poolsRouter);
 router.use('/swap', swapRouter);
+router.use('/prices', pricesRouter);
+router.use('/predictions', predictionsRouter);
 
 // 404 handler for API
 router.use((req, res) => {
