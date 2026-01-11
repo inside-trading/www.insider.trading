@@ -50,6 +50,7 @@ const state = {
     predictedPrice: null,
     predictionLocked: false,
     lastDrawnX: 0,
+    targetPrice: null,
     connected: false,
     address: null,
     predictions: []
@@ -82,7 +83,8 @@ const elements = {
     drawBtn: document.getElementById('drawBtn'),
     eraseBtn: document.getElementById('eraseBtn'),
     clearBtn: document.getElementById('clearBtn'),
-    undoBtn: document.getElementById('undoBtn')
+    undoBtn: document.getElementById('undoBtn'),
+    targetPriceInput: document.getElementById('targetPriceInput')
 };
 
 // Canvas context
@@ -126,6 +128,15 @@ function setupEventListeners() {
     elements.eraseBtn?.addEventListener('click', () => setActiveTool('erase'));
     elements.clearBtn?.addEventListener('click', clearDrawing);
     elements.undoBtn?.addEventListener('click', undoDrawing);
+
+    // Target price input
+    elements.targetPriceInput?.addEventListener('input', handleTargetPriceChange);
+    elements.targetPriceInput?.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+            e.target.blur();
+            handleTargetPriceChange(e);
+        }
+    });
 
     // Canvas events
     setupCanvasEvents();
@@ -332,13 +343,37 @@ function renderChart() {
         state.series.setData(lineData);
     }
 
-    // Calculate price range for canvas
-    const prices = state.chartData.flatMap(d => [d.high, d.low]);
-    priceRange.min = Math.min(...prices) * 0.95;
-    priceRange.max = Math.max(...prices) * 1.05;
+    // Calculate price range for canvas based on target price if set
+    updateCanvasPriceRange();
 
     // Fit content
     state.chart.timeScale().fitContent();
+}
+
+function updateCanvasPriceRange() {
+    const currentPrice = state.lastPrice;
+    const targetPrice = state.targetPrice;
+
+    if (targetPrice && targetPrice !== currentPrice) {
+        // Scale canvas from current price to target price with some padding
+        const priceDiff = Math.abs(targetPrice - currentPrice);
+        const padding = priceDiff * 0.15; // 15% padding
+
+        if (targetPrice > currentPrice) {
+            // Bullish prediction
+            priceRange.min = currentPrice - padding;
+            priceRange.max = targetPrice + padding;
+        } else {
+            // Bearish prediction
+            priceRange.min = targetPrice - padding;
+            priceRange.max = currentPrice + padding;
+        }
+    } else {
+        // Default: use historical price range
+        const prices = state.chartData.flatMap(d => [d.high, d.low]);
+        priceRange.min = Math.min(...prices) * 0.95;
+        priceRange.max = Math.max(...prices) * 1.05;
+    }
 }
 
 function updateAssetInfo() {
@@ -403,8 +438,9 @@ function setupPredictionCanvas() {
     // Draw grid and price markers
     drawGrid();
 
-    // Render x-axis labels
+    // Render axis labels
     renderXAxis();
+    renderYAxisLabels();
 }
 
 function drawGrid() {
@@ -1014,6 +1050,10 @@ function renderPredictionsList() {
 
 async function handleAssetChange(e) {
     state.selectedAsset = e.target.value;
+    state.targetPrice = null;
+    if (elements.targetPriceInput) {
+        elements.targetPriceInput.value = '';
+    }
     clearDrawing();
     await loadChartData();
 }
@@ -1038,6 +1078,44 @@ function handleChartTypeChange(type) {
     });
 
     renderChart();
+}
+
+function handleTargetPriceChange(e) {
+    const value = parseFloat(e.target.value);
+
+    if (value && value > 0) {
+        state.targetPrice = value;
+    } else {
+        state.targetPrice = null;
+    }
+
+    // Clear existing drawing when target price changes
+    if (state.drawingPath.length > 0) {
+        clearDrawing();
+    }
+
+    // Update canvas price range and redraw
+    updateCanvasPriceRange();
+    setupPredictionCanvas();
+    renderYAxisLabels();
+}
+
+function renderYAxisLabels() {
+    const yAxisContainer = document.getElementById('yAxisLabels');
+    if (!yAxisContainer) return;
+
+    const numLabels = 5;
+    const labels = [];
+
+    for (let i = 0; i < numLabels; i++) {
+        const ratio = i / (numLabels - 1);
+        const price = priceRange.max - (ratio * (priceRange.max - priceRange.min));
+        labels.push(formatCurrency(price));
+    }
+
+    yAxisContainer.innerHTML = labels.map(label =>
+        `<span class="y-axis-label">${label}</span>`
+    ).join('');
 }
 
 function handleResize() {
