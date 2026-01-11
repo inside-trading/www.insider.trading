@@ -50,14 +50,11 @@ const state = {
     predictedPrice: null,
     predictionLocked: false,
     lastDrawnX: 0,
-    targetPrice: null,
     connected: false,
     address: null,
     predictions: [],
-    // Divider state
-    dividerPosition: 0.5, // 0 to 1, percentage from left
-    isDraggingDivider: false,
-    dividerDate: new Date() // The date at the divider position
+    // Chart Y-axis range (synced with TradingView)
+    visiblePriceRange: { min: 0, max: 0 }
 };
 
 // DOM Elements
@@ -88,10 +85,9 @@ const elements = {
     eraseBtn: document.getElementById('eraseBtn'),
     clearBtn: document.getElementById('clearBtn'),
     undoBtn: document.getElementById('undoBtn'),
-    targetPriceInput: document.getElementById('targetPriceInput'),
-    chartWrapper: document.getElementById('chartWrapper'),
-    predictionDivider: document.getElementById('predictionDivider'),
-    dividerDate: document.getElementById('dividerDate'),
+    timelineScrollContainer: document.getElementById('timelineScrollContainer'),
+    timelineContent: document.getElementById('timelineContent'),
+    nowDivider: document.getElementById('nowDivider'),
     unifiedXAxis: document.getElementById('unifiedXAxis'),
     predictionArea: document.getElementById('predictionArea')
 };
@@ -112,10 +108,12 @@ document.addEventListener('DOMContentLoaded', async () => {
 async function initializeApp() {
     setupCanvas();
     setupEventListeners();
-    initializeDividerPosition();
     await loadChartData();
     loadPredictions();
     updatePayoffDisplay();
+
+    // Scroll to show "Now" divider in view
+    scrollToNow();
 }
 
 // ================================================
@@ -139,20 +137,8 @@ function setupEventListeners() {
     elements.clearBtn?.addEventListener('click', clearDrawing);
     elements.undoBtn?.addEventListener('click', undoDrawing);
 
-    // Target price input
-    elements.targetPriceInput?.addEventListener('input', handleTargetPriceChange);
-    elements.targetPriceInput?.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') {
-            e.target.blur();
-            handleTargetPriceChange(e);
-        }
-    });
-
     // Canvas events
     setupCanvasEvents();
-
-    // Divider drag events
-    setupDividerEvents();
 
     // Submit button
     elements.submitPredictionBtn?.addEventListener('click', submitPrediction);
@@ -164,103 +150,18 @@ function setupEventListeners() {
     window.addEventListener('resize', debounce(handleResize, 250));
 }
 
-function setupDividerEvents() {
-    const divider = elements.predictionDivider;
-    if (!divider) return;
+function scrollToNow() {
+    const container = elements.timelineScrollContainer;
+    const nowDivider = elements.nowDivider;
 
-    // Mouse events
-    divider.addEventListener('mousedown', startDividerDrag);
-    document.addEventListener('mousemove', dragDivider);
-    document.addEventListener('mouseup', stopDividerDrag);
+    if (container && nowDivider) {
+        // Calculate scroll position to center the "Now" divider
+        const containerWidth = container.clientWidth;
+        const dividerOffset = nowDivider.offsetLeft;
 
-    // Touch events
-    divider.addEventListener('touchstart', startDividerDrag, { passive: false });
-    document.addEventListener('touchmove', dragDivider, { passive: false });
-    document.addEventListener('touchend', stopDividerDrag);
-}
-
-function startDividerDrag(e) {
-    e.preventDefault();
-    state.isDraggingDivider = true;
-    elements.predictionDivider?.classList.add('dragging');
-    document.body.style.cursor = 'ew-resize';
-    document.body.style.userSelect = 'none';
-}
-
-function dragDivider(e) {
-    if (!state.isDraggingDivider) return;
-    e.preventDefault();
-
-    const wrapper = elements.chartWrapper;
-    if (!wrapper) return;
-
-    const rect = wrapper.getBoundingClientRect();
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-
-    // Calculate position as percentage (clamped between 0.15 and 0.85)
-    let position = (clientX - rect.left) / rect.width;
-    position = Math.max(0.15, Math.min(0.85, position));
-
-    state.dividerPosition = position;
-
-    // Update layout immediately
-    updateDividerLayout();
-    updateDividerDate();
-    renderUnifiedXAxis();
-
-    // Clear drawing when divider moves
-    if (state.drawingPath.length > 0) {
-        clearDrawing();
-    }
-}
-
-function stopDividerDrag() {
-    if (state.isDraggingDivider) {
-        state.isDraggingDivider = false;
-        elements.predictionDivider?.classList.remove('dragging');
-        document.body.style.cursor = '';
-        document.body.style.userSelect = '';
-
-        // Resize canvas after drag ends
-        resizeCanvas();
-        setupPredictionCanvas();
-    }
-}
-
-function updateDividerLayout() {
-    const chartArea = elements.chartArea;
-    const predictionArea = elements.predictionArea;
-
-    if (chartArea && predictionArea) {
-        chartArea.style.flex = state.dividerPosition.toString();
-        predictionArea.style.flex = (1 - state.dividerPosition).toString();
-    }
-}
-
-function updateDividerDate() {
-    const config = WINDOWS[state.selectedWindow];
-    const totalDays = config.historicalDays + config.days;
-
-    // Calculate the date at divider position
-    // Position 0 = oldest historical, Position 1 = end of prediction
-    const daysFromStart = state.dividerPosition * totalDays;
-    const daysFromNow = daysFromStart - config.historicalDays;
-
-    const dividerDate = new Date();
-    dividerDate.setDate(dividerDate.getDate() + daysFromNow);
-    state.dividerDate = dividerDate;
-
-    // Update display
-    if (elements.dividerDate) {
-        if (Math.abs(daysFromNow) < 1) {
-            elements.dividerDate.textContent = 'Today';
-        } else {
-            elements.dividerDate.textContent = dividerDate.toLocaleDateString('en-US', {
-                month: 'short',
-                day: 'numeric',
-                year: dividerDate.getFullYear() !== new Date().getFullYear() ? 'numeric' : undefined
-            });
-        }
+        // Scroll so "Now" is visible with some chart history showing
+        const scrollTarget = dividerOffset - (containerWidth * 0.4);
+        container.scrollLeft = Math.max(0, scrollTarget);
     }
 }
 
@@ -464,28 +365,16 @@ function renderChart() {
 }
 
 function updateCanvasPriceRange() {
-    const currentPrice = state.lastPrice;
-    const targetPrice = state.targetPrice;
-
-    if (targetPrice && targetPrice !== currentPrice) {
-        // Scale canvas from current price to target price with some padding
-        const priceDiff = Math.abs(targetPrice - currentPrice);
-        const padding = priceDiff * 0.15; // 15% padding
-
-        if (targetPrice > currentPrice) {
-            // Bullish prediction
-            priceRange.min = currentPrice - padding;
-            priceRange.max = targetPrice + padding;
-        } else {
-            // Bearish prediction
-            priceRange.min = targetPrice - padding;
-            priceRange.max = currentPrice + padding;
-        }
-    } else {
-        // Default: use historical price range
-        const prices = state.chartData.flatMap(d => [d.high, d.low]);
-        priceRange.min = Math.min(...prices) * 0.95;
-        priceRange.max = Math.max(...prices) * 1.05;
+    // Use historical price range with extended padding for drawing flexibility
+    const prices = state.chartData.flatMap(d => [d.high, d.low]);
+    if (prices.length > 0) {
+        const minPrice = Math.min(...prices);
+        const maxPrice = Math.max(...prices);
+        const range = maxPrice - minPrice;
+        // 30% padding above and below for drawing predictions
+        priceRange.min = minPrice - (range * 0.3);
+        priceRange.max = maxPrice + (range * 0.3);
+        state.visiblePriceRange = { min: priceRange.min, max: priceRange.max };
     }
 }
 
@@ -546,33 +435,44 @@ function resizeCanvas() {
 }
 
 function setupPredictionCanvas() {
-    // Update divider layout
-    updateDividerLayout();
-    updateDividerDate();
-
     resizeCanvas();
 
-    // Draw grid and price markers
+    // Draw grid
     drawGrid();
+
+    // Update the price range from chart's visible range
+    syncPriceRangeWithChart();
 
     // Render unified x-axis
     renderUnifiedXAxis();
 }
 
-function initializeDividerPosition() {
-    // Set initial divider position based on timeframe
-    // More historical data for shorter timeframes, more prediction space for longer
-    const initialPositions = {
-        '1D': 0.7,    // 70% history, 30% prediction
-        '1W': 0.6,    // 60% history, 40% prediction
-        '1M': 0.55,   // 55% history, 45% prediction
-        '1Y': 0.5,    // 50% history, 50% prediction
-        '3Y': 0.45,   // 45% history, 55% prediction
-        '5Y': 0.4,    // 40% history, 60% prediction
-        '10Y': 0.35   // 35% history, 65% prediction
-    };
-
-    state.dividerPosition = initialPositions[state.selectedWindow] || 0.5;
+function syncPriceRangeWithChart() {
+    // Get visible price range from TradingView chart
+    if (state.chart && state.series) {
+        try {
+            const priceScale = state.chart.priceScale('right');
+            // Use chart data to calculate range
+            const prices = state.chartData.flatMap(d => [d.high, d.low]);
+            if (prices.length > 0) {
+                const minPrice = Math.min(...prices);
+                const maxPrice = Math.max(...prices);
+                // Add some padding for drawing above/below
+                const padding = (maxPrice - minPrice) * 0.3;
+                state.visiblePriceRange = {
+                    min: minPrice - padding,
+                    max: maxPrice + padding
+                };
+                priceRange.min = state.visiblePriceRange.min;
+                priceRange.max = state.visiblePriceRange.max;
+            }
+        } catch (e) {
+            // Fallback to chart data range
+            const prices = state.chartData.flatMap(d => [d.high, d.low]);
+            priceRange.min = Math.min(...prices) * 0.9;
+            priceRange.max = Math.max(...prices) * 1.1;
+        }
+    }
 }
 
 function renderUnifiedXAxis() {
@@ -1161,19 +1061,16 @@ function renderPredictionsList() {
 
 async function handleAssetChange(e) {
     state.selectedAsset = e.target.value;
-    state.targetPrice = null;
-    if (elements.targetPriceInput) {
-        elements.targetPriceInput.value = '';
-    }
     clearDrawing();
     await loadChartData();
+    scrollToNow();
 }
 
 async function handleWindowChange(e) {
     state.selectedWindow = e.target.value;
-    initializeDividerPosition();
     clearDrawing();
     await loadChartData();
+    scrollToNow();
 }
 
 function handleStakeChange(e) {
@@ -1190,25 +1087,6 @@ function handleChartTypeChange(type) {
     });
 
     renderChart();
-}
-
-function handleTargetPriceChange(e) {
-    const value = parseFloat(e.target.value);
-
-    if (value && value > 0) {
-        state.targetPrice = value;
-    } else {
-        state.targetPrice = null;
-    }
-
-    // Clear existing drawing when target price changes
-    if (state.drawingPath.length > 0) {
-        clearDrawing();
-    }
-
-    // Update canvas price range and redraw
-    updateCanvasPriceRange();
-    setupPredictionCanvas();
 }
 
 function handleResize() {

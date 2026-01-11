@@ -187,48 +187,39 @@
                             </svg>
                         </button>
                     </div>
-                    <!-- Target Price Input -->
-                    <div class="target-price-group">
-                        <label class="target-price-label">Target Price</label>
-                        <div class="target-price-input-wrapper">
-                            <span class="target-price-currency">$</span>
-                            <input type="number" id="targetPriceInput" class="target-price-input" placeholder="Enter target" step="0.01">
-                        </div>
-                    </div>
                     <div class="asset-info-right">
                         <span class="asset-price" id="assetPrice">$0.00</span>
                         <span class="asset-change positive" id="assetChange">+0.00%</span>
                     </div>
                 </div>
 
-                <!-- Chart Area -->
-                <div class="chart-wrapper" id="chartWrapper">
-                    <div class="chart-area" id="chartArea">
-                        <!-- Historical chart renders here -->
-                        <div class="chart-loading" id="chartLoading">
-                            <div class="loading-spinner"></div>
-                            <span>Loading chart data...</span>
+                <!-- Scrollable Timeline Container -->
+                <div class="timeline-scroll-container" id="timelineScrollContainer">
+                    <div class="timeline-content" id="timelineContent">
+                        <!-- Historical Chart Area -->
+                        <div class="chart-area" id="chartArea">
+                            <div class="chart-loading" id="chartLoading">
+                                <div class="loading-spinner"></div>
+                                <span>Loading chart data...</span>
+                            </div>
                         </div>
-                    </div>
-                    <div class="prediction-divider" id="predictionDivider">
-                        <div class="divider-handle">
-                            <div class="handle-grip"></div>
-                            <div class="handle-grip"></div>
-                            <div class="handle-grip"></div>
+                        <!-- Now Divider Line -->
+                        <div class="now-divider" id="nowDivider">
+                            <div class="now-label">Now</div>
                         </div>
-                        <div class="divider-date" id="dividerDate">Today</div>
-                    </div>
-                    <div class="prediction-area" id="predictionArea">
-                        <canvas id="predictionCanvas"></canvas>
-                        <div class="prediction-overlay" id="predictionOverlay">
-                            <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
-                                <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                <path d="M2 2L9.586 9.586" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                            <p>Draw your price prediction</p>
-                            <span class="hint">Drag divider to adjust • Click and drag to draw</span>
+                        <!-- Prediction Canvas Area -->
+                        <div class="prediction-area" id="predictionArea">
+                            <canvas id="predictionCanvas"></canvas>
+                            <div class="prediction-overlay" id="predictionOverlay">
+                                <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
+                                    <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                    <path d="M2 2L9.586 9.586" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                                <p>Draw your price prediction</p>
+                                <span class="hint">Scroll horizontally to set expiry • Draw to predict</span>
+                            </div>
                         </div>
                     </div>
                 </div>

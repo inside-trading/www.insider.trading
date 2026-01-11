@@ -215,61 +215,6 @@
     color: var(--color-text-tertiary);
 }
 
-/* Target Price Input */
-.target-price-group {
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-}
-
-.target-price-label {
-    font-size: 11px;
-    color: var(--color-text-tertiary);
-    text-transform: uppercase;
-    letter-spacing: 0.5px;
-}
-
-.target-price-input-wrapper {
-    display: flex;
-    align-items: center;
-    background: var(--color-bg-tertiary);
-    border: 1px solid var(--color-border);
-    border-radius: var(--radius-md);
-    padding: 0 12px;
-    transition: border-color 0.2s ease;
-}
-
-.target-price-input-wrapper:focus-within {
-    border-color: var(--color-accent-primary);
-}
-
-.target-price-currency {
-    color: var(--color-text-tertiary);
-    font-size: 14px;
-    font-weight: 500;
-}
-
-.target-price-input {
-    width: 100px;
-    padding: 8px 8px;
-    background: transparent;
-    color: var(--color-text-primary);
-    font-size: 14px;
-    font-weight: 600;
-    border: none;
-    outline: none;
-}
-
-.target-price-input::placeholder {
-    color: var(--color-text-tertiary);
-    font-weight: 400;
-}
-
-.target-price-input::-webkit-outer-spin-button,
-.target-price-input::-webkit-inner-spin-button {
-    -webkit-appearance: none;
-}
-
 .asset-info-right {
     display: flex;
     align-items: baseline;
@@ -294,20 +239,44 @@
     color: var(--color-error);
 }
 
-/* Chart Wrapper */
-.chart-wrapper {
-    display: flex;
-    height: 450px;
+/* Scrollable Timeline Container */
+.timeline-scroll-container {
     position: relative;
+    height: 450px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    border-radius: var(--radius-md);
+    background: var(--color-bg-secondary);
+    scrollbar-width: thin;
+    scrollbar-color: var(--color-accent-primary) var(--color-bg-tertiary);
+}
+
+.timeline-scroll-container::-webkit-scrollbar {
+    height: 8px;
+}
+
+.timeline-scroll-container::-webkit-scrollbar-track {
+    background: var(--color-bg-tertiary);
+    border-radius: 4px;
+}
+
+.timeline-scroll-container::-webkit-scrollbar-thumb {
+    background: var(--color-accent-primary);
+    border-radius: 4px;
+}
+
+.timeline-content {
+    display: flex;
+    height: 100%;
+    min-width: 100%;
 }
 
 .chart-area {
-    flex: 0.65;
+    flex-shrink: 0;
+    width: 70%;
+    min-width: 500px;
     position: relative;
     background: var(--color-bg-secondary);
-    border-radius: var(--radius-md) 0 0 var(--radius-md);
-    overflow: hidden;
-    transition: flex 0.3s ease;
 }
 
 .chart-loading {
@@ -335,98 +304,37 @@
     animation: spin 1s linear infinite;
 }
 
-/* Draggable Divider */
-.prediction-divider {
-    width: 12px;
-    background: transparent;
+/* Now Divider Line */
+.now-divider {
+    flex-shrink: 0;
+    width: 3px;
     position: relative;
-    z-index: 20;
-    cursor: ew-resize;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin: 0 -5px;
-}
-
-.prediction-divider::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    bottom: 0;
-    left: 50%;
-    width: 2px;
-    transform: translateX(-50%);
     background: linear-gradient(to bottom, var(--color-accent-primary), var(--color-accent-secondary));
+    z-index: 10;
 }
 
-.prediction-divider:hover::before,
-.prediction-divider.dragging::before {
-    width: 4px;
-    box-shadow: 0 0 12px var(--color-accent-primary);
-}
-
-.divider-handle {
+.now-label {
     position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    width: 24px;
-    height: 48px;
-    background: var(--color-bg-card);
-    border: 2px solid var(--color-accent-primary);
-    border-radius: var(--radius-md);
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-    gap: 3px;
-    transition: all 0.2s ease;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
-}
-
-.prediction-divider:hover .divider-handle,
-.prediction-divider.dragging .divider-handle {
-    background: var(--color-accent-primary);
-    transform: translate(-50%, -50%) scale(1.1);
-    box-shadow: 0 4px 16px rgba(0, 212, 170, 0.4);
-}
-
-.handle-grip {
-    width: 12px;
-    height: 2px;
-    background: var(--color-accent-primary);
-    border-radius: 1px;
-}
-
-.prediction-divider:hover .handle-grip,
-.prediction-divider.dragging .handle-grip {
-    background: var(--color-bg-primary);
-}
-
-.divider-date {
-    position: absolute;
-    bottom: -32px;
+    top: 8px;
     left: 50%;
     transform: translateX(-50%);
-    white-space: nowrap;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--color-accent-primary);
-    background: var(--color-bg-card);
-    padding: 4px 10px;
+    background: var(--color-accent-primary);
+    color: var(--color-bg-primary);
+    font-size: 10px;
+    font-weight: 700;
+    padding: 2px 8px;
     border-radius: var(--radius-full);
-    border: 1px solid var(--color-accent-primary);
-    pointer-events: none;
+    white-space: nowrap;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
 }
 
 .prediction-area {
-    flex: 0.35;
+    flex-shrink: 0;
+    width: 50%;
+    min-width: 300px;
     position: relative;
     background: var(--color-bg-secondary);
-    border-radius: 0 var(--radius-md) var(--radius-md) 0;
-    overflow: hidden;
-    min-width: 150px;
-    transition: flex 0.3s ease;
 }
 
 #predictionCanvas {
@@ -946,41 +854,20 @@
         height: auto;
     }
 
-    .chart-area {
+    .timeline-scroll-container {
         height: 350px;
-        border-radius: var(--radius-md) var(--radius-md) 0 0;
     }
 
-    .prediction-divider {
-        width: 100%;
-        height: 2px;
-    }
-
-    .divider-line {
-        width: 100%;
-        height: 2px;
-        background: linear-gradient(to right, var(--color-accent-primary), var(--color-accent-secondary));
-    }
-
-    .divider-label {
-        top: 50%;
-        left: auto;
-        right: 20px;
-        transform: translateY(-50%);
+    .chart-area {
+        min-width: 300px;
     }
 
     .prediction-area {
-        height: 250px;
-        min-width: auto;
-        border-radius: 0 0 var(--radius-md) var(--radius-md);
+        min-width: 200px;
     }
 
     .unified-x-axis {
         margin-top: 8px;
-    }
-
-    .divider-date {
-        display: none;
     }
 }
 
@@ -994,13 +881,8 @@
         order: 1;
     }
 
-    .target-price-group {
-        order: 2;
-        margin-left: auto;
-    }
-
     .drawing-tools {
-        order: 4;
+        order: 3;
         width: 100%;
         justify-content: center;
     }
@@ -1052,6 +934,6 @@
     }
 }
 
-.prediction-divider {
+.now-divider {
     animation: pulse-glow 2s infinite;
 }
