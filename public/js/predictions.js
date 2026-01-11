@@ -555,9 +555,8 @@ function setupPredictionCanvas() {
     // Draw grid and price markers
     drawGrid();
 
-    // Render unified x-axis and y-axis labels
+    // Render unified x-axis
     renderUnifiedXAxis();
-    renderYAxisLabels();
 }
 
 function initializeDividerPosition() {
@@ -1210,25 +1209,6 @@ function handleTargetPriceChange(e) {
     // Update canvas price range and redraw
     updateCanvasPriceRange();
     setupPredictionCanvas();
-    renderYAxisLabels();
-}
-
-function renderYAxisLabels() {
-    const yAxisContainer = document.getElementById('yAxisLabels');
-    if (!yAxisContainer) return;
-
-    const numLabels = 5;
-    const labels = [];
-
-    for (let i = 0; i < numLabels; i++) {
-        const ratio = i / (numLabels - 1);
-        const price = priceRange.max - (ratio * (priceRange.max - priceRange.min));
-        labels.push(formatCurrency(price));
-    }
-
-    yAxisContainer.innerHTML = labels.map(label =>
-        `<span class="y-axis-label">${label}</span>`
-    ).join('');
 }
 
 function handleResize() {

@@ -471,25 +471,6 @@
     opacity: 0.7;
 }
 
-/* Y-Axis Labels */
-.y-axis-labels {
-    position: absolute;
-    right: 8px;
-    top: 70px;
-    bottom: 20px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-    pointer-events: none;
-    z-index: 5;
-}
-
-.y-axis-label {
-    font-size: 11px;
-    color: var(--color-text-tertiary);
-    text-align: right;
-}
-
 /* Unified X-Axis */
 .unified-x-axis {
     position: relative;
