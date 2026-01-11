@@ -302,11 +302,12 @@
 }
 
 .chart-area {
-    flex: 2;
+    flex: 0.65;
     position: relative;
     background: var(--color-bg-secondary);
     border-radius: var(--radius-md) 0 0 var(--radius-md);
     overflow: hidden;
+    transition: flex 0.3s ease;
 }
 
 .chart-loading {
@@ -365,12 +366,13 @@
 }
 
 .prediction-area {
-    flex: 1;
+    flex: 0.35;
     position: relative;
     background: var(--color-bg-secondary);
     border-radius: 0 var(--radius-md) var(--radius-md) 0;
     overflow: hidden;
-    min-width: 300px;
+    min-width: 150px;
+    transition: flex 0.3s ease;
 }
 
 #predictionCanvas {
@@ -439,8 +441,9 @@
     position: relative;
     height: 30px;
     margin-top: 8px;
-    margin-left: calc(66.66% + 2px); /* Align with prediction area (flex: 2 + flex: 1 ratio) */
+    margin-left: calc(65% + 2px); /* Dynamically adjusted by JS based on timeframe */
     margin-right: 0;
+    transition: margin-left 0.3s ease;
 }
 
 .x-axis-label {

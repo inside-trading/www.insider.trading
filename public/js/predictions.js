@@ -433,6 +433,9 @@ function resizeCanvas() {
 }
 
 function setupPredictionCanvas() {
+    // Adjust canvas width based on timeframe
+    updateCanvasWidth();
+
     resizeCanvas();
 
     // Draw grid and price markers
@@ -441,6 +444,40 @@ function setupPredictionCanvas() {
     // Render axis labels
     renderXAxis();
     renderYAxisLabels();
+}
+
+function updateCanvasWidth() {
+    const predictionArea = document.getElementById('predictionArea');
+    const xAxisLabels = document.getElementById('xAxisLabels');
+    if (!predictionArea) return;
+
+    // Width ratios based on timeframe (relative to chart area)
+    // Shorter timeframes = narrower canvas, longer = wider
+    const widthRatios = {
+        '1D': 0.25,   // 25% - very short term
+        '1W': 0.35,   // 35% - short term
+        '1M': 0.45,   // 45% - medium term
+        '1Y': 0.55,   // 55% - long term
+        '3Y': 0.65,   // 65% - longer term
+        '5Y': 0.75,   // 75% - very long term
+        '10Y': 0.85   // 85% - longest term
+    };
+
+    const ratio = widthRatios[state.selectedWindow] || 0.35;
+    const chartRatio = 1 - ratio;
+
+    // Update flex values for chart and prediction areas
+    const chartArea = document.getElementById('chartArea');
+    if (chartArea) {
+        chartArea.style.flex = chartRatio.toString();
+    }
+    predictionArea.style.flex = ratio.toString();
+
+    // Update x-axis margin to align with prediction area
+    if (xAxisLabels) {
+        const marginPercent = (chartRatio / (chartRatio + ratio)) * 100;
+        xAxisLabels.style.marginLeft = `calc(${marginPercent}% + 2px)`;
+    }
 }
 
 function drawGrid() {
