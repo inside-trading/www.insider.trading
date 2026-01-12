@@ -9,14 +9,22 @@ const API_KEY = process.env.TWELVE_DATA_API_KEY;
 
 // Window configurations for Twelve Data
 // interval options: 1min, 5min, 15min, 30min, 45min, 1h, 2h, 4h, 1day, 1week, 1month
+// outputsize must match frontend historicalDays expectations:
+// 1D: 30 days * 24 hours * 4 (15min) = 2880
+// 1W: 90 days * 24 hours = 2160
+// 1M: 180 days
+// 1Y: 730 days
+// 3Y: 1825 days / 7 = 261 weeks
+// 5Y: 2555 days / 7 = 365 weeks
+// 10Y: 4380 days / 30 = 146 months
 const WINDOW_CONFIG = {
-    '1D': { interval: '15min', outputsize: 96 },
-    '1W': { interval: '1h', outputsize: 168 },
-    '1M': { interval: '1day', outputsize: 30 },
-    '1Y': { interval: '1day', outputsize: 365 },
-    '3Y': { interval: '1week', outputsize: 156 },
-    '5Y': { interval: '1week', outputsize: 260 },
-    '10Y': { interval: '1month', outputsize: 120 }
+    '1D': { interval: '15min', outputsize: 2880 },
+    '1W': { interval: '1h', outputsize: 2160 },
+    '1M': { interval: '1day', outputsize: 180 },
+    '1Y': { interval: '1day', outputsize: 730 },
+    '3Y': { interval: '1week', outputsize: 261 },
+    '5Y': { interval: '1week', outputsize: 365 },
+    '10Y': { interval: '1month', outputsize: 146 }
 };
 
 // Asset symbol mappings for Twelve Data

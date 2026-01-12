@@ -666,12 +666,12 @@ function renderUnifiedXAxis() {
     const config = WINDOWS[state.selectedWindow];
     const totalDays = config.historicalDays + config.days;
 
-    // Generate labels for the entire timeline
-    const numLabels = 7;
-    const labels = [];
+    // Generate more candidate labels to filter duplicates from
+    const numCandidates = 14;
+    const candidates = [];
 
-    for (let i = 0; i < numLabels; i++) {
-        const position = i / (numLabels - 1); // 0 to 1
+    for (let i = 0; i < numCandidates; i++) {
+        const position = i / (numCandidates - 1); // 0 to 1
         const daysFromStart = position * totalDays;
         const daysFromNow = daysFromStart - config.historicalDays;
 
@@ -685,17 +685,51 @@ function renderUnifiedXAxis() {
         if (isNear) {
             label = 'Today';
         } else if (totalDays <= 30) {
+            // Short windows: show day and month
             label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         } else if (totalDays <= 365) {
+            // Medium windows: show month and year
             label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         } else {
+            // Long windows: show just year
             label = date.getFullYear().toString();
         }
 
-        labels.push({ label, position: position * 100, isFuture, isNear });
+        candidates.push({ label, position: position * 100, isFuture, isNear });
     }
 
-    container.innerHTML = labels.map((item, index) => {
+    // Filter out duplicate consecutive labels, keeping evenly spaced unique ones
+    const labels = [];
+    const seenLabels = new Set();
+
+    for (const candidate of candidates) {
+        // Always include "Today" label
+        if (candidate.isNear) {
+            labels.push(candidate);
+            seenLabels.add(candidate.label);
+        } else if (!seenLabels.has(candidate.label)) {
+            labels.push(candidate);
+            seenLabels.add(candidate.label);
+        }
+    }
+
+    // Limit to reasonable number of labels (max 7) for visual clarity
+    let finalLabels = labels;
+    if (labels.length > 7) {
+        // Keep first, last, "Today" if present, and evenly distribute the rest
+        const todayIndex = labels.findIndex(l => l.isNear);
+        const mustKeep = new Set([0, labels.length - 1]);
+        if (todayIndex >= 0) mustKeep.add(todayIndex);
+
+        const step = (labels.length - 1) / 6;
+        for (let i = 0; i < 7; i++) {
+            mustKeep.add(Math.round(i * step));
+        }
+
+        finalLabels = labels.filter((_, i) => mustKeep.has(i));
+    }
+
+    container.innerHTML = finalLabels.map((item, index) => {
         const classes = ['x-axis-label'];
         if (item.isFuture) classes.push('future');
         if (item.isNear) classes.push('divider-label');
