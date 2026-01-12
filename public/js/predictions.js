@@ -2,7 +2,8 @@
 // Predictions Page - Main Application
 // ================================================
 
-const API_BASE = '/api';
+// Use config if available, fallback to local
+const API_BASE = (typeof CONFIG !== 'undefined' && CONFIG.API_BASE) ? CONFIG.API_BASE : '/api';
 
 // Asset definitions
 const ASSETS = {
