@@ -17,8 +17,7 @@ const CONFIG = {
     // Feature flags
     FEATURES: {
         LIVE_PRICES: true,
-        ON_CHAIN_PREDICTIONS: true,
-        MOCK_FALLBACK: true
+        ON_CHAIN_PREDICTIONS: true
     }
 };
 
