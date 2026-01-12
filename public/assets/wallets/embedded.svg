@@ -1,0 +1,10 @@
+<svg viewBox="0 0 128 128" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <rect width="128" height="128" rx="26" fill="url(#embedded-gradient)"/>
+  <path d="M64 28C52.954 28 44 36.954 44 48V56H40C36.686 56 34 58.686 34 62V92C34 95.314 36.686 98 40 98H88C91.314 98 94 95.314 94 92V62C94 58.686 91.314 56 88 56H84V48C84 36.954 75.046 28 64 28ZM52 48C52 41.373 57.373 36 64 36C70.627 36 76 41.373 76 48V56H52V48ZM68 78.472V86C68 88.209 66.209 90 64 90C61.791 90 60 88.209 60 86V78.472C57.641 77.052 56 74.554 56 71.667C56 67.249 59.582 63.667 64 63.667C68.418 63.667 72 67.249 72 71.667C72 74.554 70.359 77.052 68 78.472Z" fill="white"/>
+  <defs>
+    <linearGradient id="embedded-gradient" x1="64" y1="0" x2="64" y2="128" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#00D4AA"/>
+      <stop offset="1" stop-color="#7B61FF"/>
+    </linearGradient>
+  </defs>
+</svg>

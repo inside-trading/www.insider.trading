@@ -160,8 +160,8 @@ function setupEventListeners() {
     // Submit button
     elements.submitPredictionBtn?.addEventListener('click', submitPrediction);
 
-    // Wallet connection
-    elements.connectWalletBtn?.addEventListener('click', connectWallet);
+    // Wallet connection - use new auth modal
+    elements.connectWalletBtn?.addEventListener('click', () => window.InsiderAuth?.openAuthModal());
 
     // Window resize
     window.addEventListener('resize', debounce(handleResize, 250));
@@ -1251,7 +1251,7 @@ function updateSubmitButton() {
 
 async function submitPrediction() {
     if (!state.connected) {
-        connectWallet();
+        window.InsiderAuth?.openAuthModal();
         return;
     }
 
@@ -1709,3 +1709,43 @@ function debounce(func, wait) {
 
 // Initialize active tool
 state.activeTool = 'draw';
+
+// ================================================
+// Auth State Change Handler (integrates with auth.js)
+// ================================================
+
+window.onAuthStateChange = function(authState) {
+    if (authState.authenticated) {
+        state.connected = true;
+        state.address = authState.walletAddress;
+
+        // Show network badge for wallet users
+        const networkBadge = document.getElementById('networkBadge');
+        if (networkBadge && authState.walletType === 'external') {
+            networkBadge.style.display = 'flex';
+        }
+
+        updateSubmitButton();
+
+        // Load on-chain predictions if external wallet
+        if (authState.walletType === 'external' && Web3Integration?.state?.contract) {
+            loadOnChainPredictions().catch(console.error);
+        }
+    } else {
+        state.connected = false;
+        state.address = null;
+        const networkBadge = document.getElementById('networkBadge');
+        if (networkBadge) networkBadge.style.display = 'none';
+        updateSubmitButton();
+    }
+};
+
+// Sync with auth state on load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const authState = window.InsiderAuth?.getAuthState();
+        if (authState?.authenticated) {
+            window.onAuthStateChange(authState);
+        }
+    }, 100);
+});

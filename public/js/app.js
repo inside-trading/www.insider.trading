@@ -336,8 +336,10 @@ async function updatePlatformStats() {
 // ================================================
 
 function setupEventListeners() {
-    elements.connectWalletBtn?.addEventListener('click', openWalletModal);
-    elements.ctaConnectBtn?.addEventListener('click', openWalletModal);
+    // Use new auth modal instead of old wallet modal
+    elements.connectWalletBtn?.addEventListener('click', () => window.InsiderAuth?.openAuthModal());
+    elements.ctaConnectBtn?.addEventListener('click', () => window.InsiderAuth?.openAuthModal());
+    document.getElementById('mobileConnectBtn')?.addEventListener('click', () => window.InsiderAuth?.openAuthModal());
     elements.networkBtn?.addEventListener('click', openNetworkModal);
     elements.settingsBtn?.addEventListener('click', toggleSettings);
     elements.swapDirectionBtn?.addEventListener('click', swapTokens);
@@ -640,7 +642,7 @@ function updateRouteDisplay() {
 
 async function handleSwap() {
     if (!state.connected) {
-        openWalletModal();
+        window.InsiderAuth?.openAuthModal();
         return;
     }
 
@@ -952,26 +954,6 @@ function animateStats() {
 // ================================================
 
 if (typeof window.ethereum !== 'undefined') {
-    window.ethereum.on('accountsChanged', (accounts) => {
-        if (accounts.length === 0) {
-            state.connected = false;
-            state.address = null;
-            if (elements.connectWalletBtn) {
-                elements.connectWalletBtn.innerHTML = `
-                    <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
-                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <path d="M16 13.5C16 14.3284 15.3284 15 14.5 15C13.6716 15 13 14.3284 13 13.5C13 12.6716 13.6716 12 14.5 12C15.3284 12 16 12.6716 16 13.5Z" fill="currentColor"/>
-                        <path d="M6 6V5C6 3.89543 6.89543 3 8 3H18C19.1046 3 20 3.89543 20 5V6" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    Connect Wallet
-                `;
-            }
-            updateSwapUI();
-        } else {
-            handleWalletConnected(accounts[0]);
-        }
-    });
-
     window.ethereum.on('chainChanged', (chainId) => {
         const networkId = parseInt(chainId, 16);
         const network = NETWORKS.find(n => n.id === networkId);
@@ -980,3 +962,43 @@ if (typeof window.ethereum !== 'undefined') {
         }
     });
 }
+
+// ================================================
+// Auth State Change Handler (integrates with auth.js)
+// ================================================
+
+window.onAuthStateChange = function(authState) {
+    if (authState.authenticated) {
+        state.connected = true;
+        state.address = authState.walletAddress;
+
+        // Set mock balances for demo
+        state.tokens.forEach(token => {
+            token.balance = Math.random() * 10;
+        });
+
+        renderTokens();
+        updateSwapUI();
+    } else {
+        state.connected = false;
+        state.address = null;
+
+        // Clear balances
+        state.tokens.forEach(token => {
+            token.balance = 0;
+        });
+
+        renderTokens();
+        updateSwapUI();
+    }
+};
+
+// Sync with auth state on load
+document.addEventListener('DOMContentLoaded', () => {
+    setTimeout(() => {
+        const authState = window.InsiderAuth?.getAuthState();
+        if (authState?.authenticated) {
+            window.onAuthStateChange(authState);
+        }
+    }, 100);
+});
