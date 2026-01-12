@@ -1026,6 +1026,12 @@ function getWalletAddress() {
 // Initialization
 // ================================================
 
+// Configuration for auto-showing auth modal
+const AUTH_SETTINGS = {
+    autoShowModal: true,  // Show modal automatically if not authenticated
+    autoShowDelay: 500    // Delay before showing modal (ms)
+};
+
 function initAuth() {
     if (authState.initialized) return;
 
@@ -1052,6 +1058,13 @@ function initAuth() {
 
     authState.initialized = true;
     console.log('Auth module initialized');
+
+    // Auto-show auth modal if not authenticated
+    if (AUTH_SETTINGS.autoShowModal && !authState.authenticated) {
+        setTimeout(() => {
+            openAuthModal();
+        }, AUTH_SETTINGS.autoShowDelay);
+    }
 }
 
 // Auto-initialize when DOM is ready
