@@ -477,7 +477,7 @@
 /* Scrollable Timeline Container */
 .timeline-scroll-container {
     position: relative;
-    height: 450px;
+    height: 480px; /* 450px charts + 30px x-axis */
     overflow-x: auto;
     overflow-y: hidden;
     border-radius: var(--radius-md);
@@ -502,8 +502,16 @@
 
 .timeline-content {
     display: flex;
-    height: 100%;
+    flex-direction: column;
     min-width: 100%;
+    min-height: 100%;
+}
+
+.timeline-charts-row {
+    display: flex;
+    flex: 1;
+    min-width: 100%;
+    height: 450px;
 }
 
 .chart-area {
@@ -618,9 +626,11 @@
 .unified-x-axis {
     position: relative;
     height: 30px;
-    margin-top: 12px;
+    flex-shrink: 0;
     display: flex;
     align-items: flex-start;
+    background: var(--color-bg-secondary);
+    border-top: 1px solid var(--color-border);
 }
 
 .x-axis-label {
@@ -1109,7 +1119,11 @@
     }
 
     .timeline-scroll-container {
-        height: 350px;
+        height: 380px; /* 350px charts + 30px x-axis */
+    }
+
+    .timeline-charts-row {
+        min-height: 350px;
     }
 
     .chart-area {
@@ -1118,10 +1132,6 @@
 
     .prediction-area {
         min-width: 200px;
-    }
-
-    .unified-x-axis {
-        margin-top: 8px;
     }
 }
 
