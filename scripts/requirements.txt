@@ -1,0 +1,4 @@
+# Python dependencies for price fetcher script
+# Install with: pip install -r scripts/requirements.txt
+
+requests>=2.28.0
