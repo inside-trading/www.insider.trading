@@ -588,28 +588,44 @@ function syncPriceRangeWithChart() {
     // Get visible price range from TradingView chart
     if (state.chart && state.series) {
         try {
-            const priceScale = state.chart.priceScale('right');
-            // Use chart data to calculate range
-            const prices = state.chartData.flatMap(d => [d.high, d.low]);
+            // Get the actual visible range from the chart's price scale
+            const chartArea = elements.chartArea;
+            const chartHeight = chartArea.clientHeight;
+
+            // Calculate price range from chart data with same margins as chart
+            const prices = state.chartData.flatMap(d =>
+                state.chartType === 'candlestick' ? [d.high, d.low] : [d.close || d.value]
+            );
+
             if (prices.length > 0) {
                 const minPrice = Math.min(...prices);
                 const maxPrice = Math.max(...prices);
-                // Add some padding for drawing above/below
-                const padding = (maxPrice - minPrice) * 0.3;
-                state.visiblePriceRange = {
-                    min: minPrice - padding,
-                    max: maxPrice + padding
-                };
-                priceRange.min = state.visiblePriceRange.min;
-                priceRange.max = state.visiblePriceRange.max;
+                const dataRange = maxPrice - minPrice;
+
+                // TradingView uses 10% margin on top and bottom (from scaleMargins)
+                // Total visible range = dataRange / (1 - 0.1 - 0.1) = dataRange / 0.8
+                const visibleRange = dataRange / 0.8;
+                const margin = visibleRange * 0.1;
+
+                // Set price range to match chart's visible range
+                priceRange.min = minPrice - margin;
+                priceRange.max = maxPrice + margin;
+                state.visiblePriceRange = { min: priceRange.min, max: priceRange.max };
             }
         } catch (e) {
-            // Fallback to chart data range
-            const prices = state.chartData.flatMap(d => [d.high, d.low]);
-            priceRange.min = Math.min(...prices) * 0.9;
-            priceRange.max = Math.max(...prices) * 1.1;
+            console.error('Error syncing price range:', e);
+            // Fallback to chart data range with padding
+            const prices = state.chartData.flatMap(d => [d.high || d.close, d.low || d.close]);
+            const minPrice = Math.min(...prices);
+            const maxPrice = Math.max(...prices);
+            const padding = (maxPrice - minPrice) * 0.25;
+            priceRange.min = minPrice - padding;
+            priceRange.max = maxPrice + padding;
         }
     }
+
+    // Redraw canvas with updated price range
+    redrawCanvas();
 }
 
 function renderUnifiedXAxis() {
@@ -685,21 +701,46 @@ function drawGrid() {
         ctx.stroke();
     }
 
-    // Draw starting price line
+    // Draw starting price line (current price level)
     const startY = priceToY(state.lastPrice);
-    ctx.strokeStyle = 'rgba(0, 212, 170, 0.5)';
-    ctx.setLineDash([5, 5]);
+
+    // Draw a more prominent starting price indicator
+    // Dashed line across canvas
+    ctx.strokeStyle = 'rgba(0, 212, 170, 0.6)';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([8, 4]);
     ctx.beginPath();
     ctx.moveTo(0, startY);
     ctx.lineTo(width, startY);
     ctx.stroke();
     ctx.setLineDash([]);
 
-    // Draw starting point
+    // Draw solid line segment at the start
+    ctx.strokeStyle = '#00D4AA';
+    ctx.lineWidth = 2;
+    ctx.beginPath();
+    ctx.moveTo(0, startY);
+    ctx.lineTo(30, startY);
+    ctx.stroke();
+
+    // Draw starting point circle
     ctx.fillStyle = '#00D4AA';
     ctx.beginPath();
-    ctx.arc(0, startY, 6, 0, Math.PI * 2);
+    ctx.arc(0, startY, 8, 0, Math.PI * 2);
     ctx.fill();
+
+    // Draw inner circle
+    ctx.fillStyle = '#0A0B0D';
+    ctx.beginPath();
+    ctx.arc(0, startY, 4, 0, Math.PI * 2);
+    ctx.fill();
+
+    // Draw price label on the right side
+    const priceLabel = formatPrice(state.lastPrice);
+    ctx.font = '11px Inter, sans-serif';
+    ctx.fillStyle = '#00D4AA';
+    ctx.textAlign = 'right';
+    ctx.fillText(priceLabel, width - 8, startY + 4);
 }
 
 function startDrawing(e) {
@@ -1581,6 +1622,16 @@ function showLoading(show) {
 }
 
 function formatCurrency(value) {
+    if (value >= 1000) {
+        return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    } else if (value >= 1) {
+        return '$' + value.toFixed(2);
+    } else {
+        return '$' + value.toFixed(4);
+    }
+}
+
+function formatPrice(value) {
     if (value >= 1000) {
         return '$' + value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
     } else if (value >= 1) {
