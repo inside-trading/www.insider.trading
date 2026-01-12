@@ -499,6 +499,27 @@ function renderChart() {
 
     // Fit content
     state.chart.timeScale().fitContent();
+
+    // Subscribe to visible range changes to sync canvas price range
+    const debouncedSync = debounce(syncPriceRangeWithChart, 100);
+
+    state.chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
+        debouncedSync();
+    });
+
+    // Subscribe to crosshair move to detect Y-axis scaling/dragging
+    state.chart.subscribeCrosshairMove((param) => {
+        // Sync when interacting with chart to capture Y-axis changes
+        if (param.point) {
+            debouncedSync();
+        }
+    });
+
+    // Also listen for mouse up on chart area to catch end of Y-axis drag
+    elements.chartArea?.addEventListener('mouseup', () => {
+        // Small delay to ensure chart has updated
+        setTimeout(syncPriceRangeWithChart, 50);
+    });
 }
 
 function updateCanvasPriceRange() {
@@ -588,29 +609,37 @@ function syncPriceRangeWithChart() {
     // Get visible price range from TradingView chart
     if (state.chart && state.series) {
         try {
-            // Get the actual visible range from the chart's price scale
             const chartArea = elements.chartArea;
             const chartHeight = chartArea.clientHeight;
 
-            // Calculate price range from chart data with same margins as chart
-            const prices = state.chartData.flatMap(d =>
-                state.chartType === 'candlestick' ? [d.high, d.low] : [d.close || d.value]
-            );
+            // Get the actual visible price range by converting coordinates
+            // Top of chart (y=0) corresponds to max visible price
+            // Bottom of chart (y=height) corresponds to min visible price
+            const topPrice = state.series.coordinateToPrice(0);
+            const bottomPrice = state.series.coordinateToPrice(chartHeight);
 
-            if (prices.length > 0) {
-                const minPrice = Math.min(...prices);
-                const maxPrice = Math.max(...prices);
-                const dataRange = maxPrice - minPrice;
-
-                // TradingView uses 10% margin on top and bottom (from scaleMargins)
-                // Total visible range = dataRange / (1 - 0.1 - 0.1) = dataRange / 0.8
-                const visibleRange = dataRange / 0.8;
-                const margin = visibleRange * 0.1;
-
-                // Set price range to match chart's visible range
-                priceRange.min = minPrice - margin;
-                priceRange.max = maxPrice + margin;
+            if (topPrice !== null && bottomPrice !== null && !isNaN(topPrice) && !isNaN(bottomPrice)) {
+                // Use the actual visible range from the chart
+                priceRange.min = Math.min(topPrice, bottomPrice);
+                priceRange.max = Math.max(topPrice, bottomPrice);
                 state.visiblePriceRange = { min: priceRange.min, max: priceRange.max };
+            } else {
+                // Fallback: Calculate from data with margins
+                const prices = state.chartData.flatMap(d =>
+                    state.chartType === 'candlestick' ? [d.high, d.low] : [d.close || d.value]
+                );
+
+                if (prices.length > 0) {
+                    const minPrice = Math.min(...prices);
+                    const maxPrice = Math.max(...prices);
+                    const dataRange = maxPrice - minPrice;
+                    const visibleRange = dataRange / 0.8;
+                    const margin = visibleRange * 0.1;
+
+                    priceRange.min = minPrice - margin;
+                    priceRange.max = maxPrice + margin;
+                    state.visiblePriceRange = { min: priceRange.min, max: priceRange.max };
+                }
             }
         } catch (e) {
             console.error('Error syncing price range:', e);
