@@ -20,6 +20,7 @@ const ASSETS = {
     'ETH-USD': { name: 'Ethereum', type: 'crypto' },
     'SOL-USD': { name: 'Solana', type: 'crypto' },
     'GC=F': { name: 'Gold', type: 'commodity' },
+    'SI=F': { name: 'Silver', type: 'commodity' },
     'CL=F': { name: 'Crude Oil', type: 'commodity' }
 };
 
@@ -372,7 +373,7 @@ function generateMockData() {
         'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
         'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
         'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-        'SOL-USD': 100, 'GC=F': 2000, 'CL=F': 75
+        'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
     };
 
     let price = basePrices[state.selectedAsset] || 100;
@@ -456,8 +457,9 @@ function renderChart() {
         },
         timeScale: {
             borderColor: '#2A2B35',
-            timeVisible: true,
-            secondsVisible: false
+            timeVisible: false,  // Hide TradingView's time scale - we use unified x-axis
+            secondsVisible: false,
+            visible: false  // Completely hide the time scale bar
         },
         handleScroll: {
             vertTouchDrag: false

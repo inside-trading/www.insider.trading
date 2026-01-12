@@ -29,6 +29,7 @@ const ASSET_SYMBOLS = {
     'ETH-USD': 'ETH-USD',
     'SOL-USD': 'SOL-USD',
     'GC=F': 'GC=F',
+    'SI=F': 'SI=F',
     'CL=F': 'CL=F'
 };
 
@@ -51,26 +52,69 @@ class PriceService {
     }
 
     /**
-     * Fetch data from Yahoo Finance
+     * Fetch data from Yahoo Finance with retry and timeout
      */
-    static fetchYahooData(symbol, range, interval) {
-        return new Promise((resolve, reject) => {
-            const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`;
+    static async fetchYahooData(symbol, range, interval, retries = 3) {
+        const endpoints = [
+            `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`,
+            `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`
+        ];
 
-            https.get(url, {
-                headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        let lastError = null;
+
+        for (let attempt = 0; attempt < retries; attempt++) {
+            for (const baseUrl of endpoints) {
+                try {
+                    const result = await this.fetchWithTimeout(baseUrl, 10000);
+                    return result;
+                } catch (error) {
+                    lastError = error;
+                    console.log(`Attempt ${attempt + 1} failed for ${symbol}: ${error.message}`);
+                    // Wait before retry (exponential backoff)
+                    if (attempt < retries - 1) {
+                        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
+                    }
                 }
-            }, (res) => {
-                let data = '';
+            }
+        }
 
+        throw lastError || new Error('All fetch attempts failed');
+    }
+
+    /**
+     * Fetch with timeout
+     */
+    static fetchWithTimeout(url, timeout = 10000) {
+        return new Promise((resolve, reject) => {
+            const req = https.get(url, {
+                headers: {
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                    'Accept': 'application/json',
+                    'Accept-Language': 'en-US,en;q=0.9'
+                },
+                timeout
+            }, (res) => {
+                // Handle redirects
+                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
+                    this.fetchWithTimeout(res.headers.location, timeout)
+                        .then(resolve)
+                        .catch(reject);
+                    return;
+                }
+
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+
+                let data = '';
                 res.on('data', chunk => data += chunk);
                 res.on('end', () => {
                     try {
                         const json = JSON.parse(data);
 
                         if (json.chart?.error) {
-                            reject(new Error(json.chart.error.description));
+                            reject(new Error(json.chart.error.description || 'Chart error'));
                             return;
                         }
 
@@ -83,17 +127,22 @@ class PriceService {
                         const timestamps = result.timestamp || [];
                         const quote = result.indicators?.quote?.[0] || {};
 
+                        // Filter out invalid candles (null/0 values)
                         const candles = timestamps.map((time, i) => ({
                             time,
-                            open: quote.open?.[i] || 0,
-                            high: quote.high?.[i] || 0,
-                            low: quote.low?.[i] || 0,
-                            close: quote.close?.[i] || 0,
+                            open: quote.open?.[i],
+                            high: quote.high?.[i],
+                            low: quote.low?.[i],
+                            close: quote.close?.[i],
                             volume: quote.volume?.[i] || 0
-                        })).filter(c => c.open && c.close);
+                        })).filter(c =>
+                            c.open != null && c.close != null &&
+                            c.open > 0 && c.close > 0 &&
+                            !isNaN(c.open) && !isNaN(c.close)
+                        );
 
-                        if (candles.length === 0) {
-                            reject(new Error('No valid candles'));
+                        if (candles.length < 5) {
+                            reject(new Error('Insufficient valid data points'));
                             return;
                         }
 
@@ -102,18 +151,25 @@ class PriceService {
                         const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
 
                         resolve({
-                            symbol,
+                            symbol: result.meta?.symbol || url.split('/').pop().split('?')[0],
                             candles,
                             lastPrice,
                             priceChange,
                             currency: result.meta?.currency || 'USD',
-                            exchange: result.meta?.exchangeName || ''
+                            exchange: result.meta?.exchangeName || '',
+                            source: 'yahoo'
                         });
                     } catch (e) {
-                        reject(e);
+                        reject(new Error(`Parse error: ${e.message}`));
                     }
                 });
-            }).on('error', reject);
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
         });
     }
 
@@ -161,7 +217,7 @@ class PriceService {
             'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
             'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
             'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-            'SOL-USD': 100, 'GC=F': 2000, 'CL=F': 75
+            'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
         };
 
         let price = basePrices[symbol] || 100;
@@ -223,7 +279,7 @@ class PriceService {
             'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
             'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
             'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-            'SOL-USD': 100, 'GC=F': 2000, 'CL=F': 75
+            'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
         };
 
         const basePrice = basePrices[symbol] || 100;
