@@ -73,94 +73,45 @@
             </div>
         </section>
 
-        <!-- Controls Section -->
-        <section class="predictions-controls">
-            <div class="controls-container">
-                <div class="control-group">
-                    <label class="control-label">Asset</label>
-                    <div class="select-wrapper">
-                        <select id="assetSelect" class="control-select">
-                            <optgroup label="Stocks">
-                                <option value="SPY">SPY - S&P 500 ETF</option>
-                                <option value="QQQ">QQQ - Nasdaq 100 ETF</option>
-                                <option value="AAPL">AAPL - Apple Inc.</option>
-                                <option value="TSLA">TSLA - Tesla Inc.</option>
-                                <option value="MSFT">MSFT - Microsoft</option>
-                                <option value="GOOGL">GOOGL - Alphabet</option>
-                                <option value="AMZN">AMZN - Amazon</option>
-                                <option value="NVDA">NVDA - NVIDIA</option>
-                                <option value="META">META - Meta Platforms</option>
-                            </optgroup>
-                            <optgroup label="Crypto">
-                                <option value="BTC-USD">Bitcoin (BTC)</option>
-                                <option value="ETH-USD">Ethereum (ETH)</option>
-                                <option value="SOL-USD">Solana (SOL)</option>
-                            </optgroup>
-                            <optgroup label="Commodities">
-                                <option value="GC=F">Gold</option>
-                                <option value="CL=F">Crude Oil</option>
-                            </optgroup>
-                        </select>
-                        <svg class="select-chevron" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label class="control-label">Prediction Window</label>
-                    <div class="select-wrapper">
-                        <select id="windowSelect" class="control-select">
-                            <option value="1D">1 Day</option>
-                            <option value="1W" selected>1 Week</option>
-                            <option value="1M">1 Month</option>
-                            <option value="1Y">1 Year</option>
-                            <option value="3Y">3 Years</option>
-                            <option value="5Y">5 Years</option>
-                            <option value="10Y">10 Years</option>
-                        </select>
-                        <svg class="select-chevron" viewBox="0 0 24 24" fill="none">
-                            <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                </div>
-
-                <div class="control-group">
-                    <label class="control-label">Chart Type</label>
-                    <div class="chart-type-btns">
-                        <button class="chart-type-btn active" data-type="candlestick" title="Candlestick">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <rect x="10" y="4" width="4" height="16" rx="1" stroke="currentColor" stroke-width="2"/>
-                                <line x1="12" y1="2" x2="12" y2="4" stroke="currentColor" stroke-width="2"/>
-                                <line x1="12" y1="20" x2="12" y2="22" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                        </button>
-                        <button class="chart-type-btn" data-type="line" title="Line">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M3 17L9 11L13 15L21 7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
-                    </div>
-                </div>
-
-                <div class="control-group stake-group">
-                    <label class="control-label">Stake Amount</label>
-                    <div class="stake-input-wrapper">
-                        <input type="number" id="stakeAmount" class="stake-input" value="100" min="1" step="1">
-                        <span class="stake-currency">USDC</span>
-                    </div>
-                </div>
-            </div>
-        </section>
-
         <!-- Chart Section -->
         <section class="chart-section">
             <div class="chart-container">
                 <!-- Asset Info Bar -->
                 <div class="asset-info-bar">
                     <div class="asset-info-left">
-                        <span class="asset-symbol" id="assetSymbol">SPY</span>
-                        <span class="asset-name" id="assetName">S&P 500 ETF</span>
+                        <div class="asset-selector" id="assetSelector">
+                            <span class="asset-symbol" id="assetSymbol">SPY</span>
+                            <span class="asset-name" id="assetName">S&P 500 ETF</span>
+                            <svg class="asset-dropdown-arrow" viewBox="0 0 24 24" fill="none">
+                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </div>
+                        <!-- Asset Dropdown Menu -->
+                        <div class="asset-dropdown-menu" id="assetDropdownMenu">
+                            <div class="dropdown-group">
+                                <span class="dropdown-group-label">Stocks</span>
+                                <div class="dropdown-item" data-value="SPY">SPY - S&P 500 ETF</div>
+                                <div class="dropdown-item" data-value="QQQ">QQQ - Nasdaq 100 ETF</div>
+                                <div class="dropdown-item" data-value="AAPL">AAPL - Apple Inc.</div>
+                                <div class="dropdown-item" data-value="TSLA">TSLA - Tesla Inc.</div>
+                                <div class="dropdown-item" data-value="MSFT">MSFT - Microsoft</div>
+                                <div class="dropdown-item" data-value="GOOGL">GOOGL - Alphabet</div>
+                                <div class="dropdown-item" data-value="AMZN">AMZN - Amazon</div>
+                                <div class="dropdown-item" data-value="NVDA">NVDA - NVIDIA</div>
+                                <div class="dropdown-item" data-value="META">META - Meta Platforms</div>
+                            </div>
+                            <div class="dropdown-group">
+                                <span class="dropdown-group-label">Crypto</span>
+                                <div class="dropdown-item" data-value="BTC-USD">Bitcoin (BTC)</div>
+                                <div class="dropdown-item" data-value="ETH-USD">Ethereum (ETH)</div>
+                                <div class="dropdown-item" data-value="SOL-USD">Solana (SOL)</div>
+                            </div>
+                            <div class="dropdown-group">
+                                <span class="dropdown-group-label">Commodities</span>
+                                <div class="dropdown-item" data-value="GC=F">Gold</div>
+                                <div class="dropdown-item" data-value="CL=F">Crude Oil</div>
+                            </div>
+                        </div>
                     </div>
                     <!-- Drawing Tools -->
                     <div class="drawing-tools">
@@ -168,12 +119,6 @@
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
                                 <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                        </button>
-                        <button class="tool-btn" id="eraseBtn" title="Erase">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M20 20H7L3 16C2.4 15.4 2.4 14.6 3 14L13 4C13.6 3.4 14.4 3.4 15 4L21 10C21.6 10.6 21.6 11.4 21 12L13 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M18 15L9 6" stroke="currentColor" stroke-width="2"/>
                             </svg>
                         </button>
                         <button class="tool-btn" id="clearBtn" title="Clear All">
@@ -289,26 +234,25 @@
 
                 <div class="info-card">
                     <h3 class="info-card-title">How Scoring Works</h3>
-                    <div class="scoring-tiers">
-                        <div class="tier">
-                            <span class="tier-range">±1%</span>
-                            <span class="tier-multiplier">10x</span>
+                    <div class="scoring-explanation">
+                        <p class="scoring-method">Your score is calculated using the <strong>path accuracy</strong> of your prediction compared to actual prices over time.</p>
+                        <div class="scoring-formula">
+                            <span class="formula-label">Score Formula:</span>
+                            <code>Score = 1 - (∫|predicted - actual|dt / ∫|actual|dt)</code>
                         </div>
-                        <div class="tier">
-                            <span class="tier-range">±2.5%</span>
-                            <span class="tier-multiplier">5x</span>
-                        </div>
-                        <div class="tier">
-                            <span class="tier-range">±5%</span>
-                            <span class="tier-multiplier">2x</span>
-                        </div>
-                        <div class="tier">
-                            <span class="tier-range">±10%</span>
-                            <span class="tier-multiplier">1x</span>
-                        </div>
-                        <div class="tier">
-                            <span class="tier-range">>10%</span>
-                            <span class="tier-multiplier">0x</span>
+                        <div class="scoring-details">
+                            <div class="detail-item">
+                                <span class="detail-icon">📊</span>
+                                <span>Prices compared every 5 minutes</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">📈</span>
+                                <span>Entire path matters, not just final price</span>
+                            </div>
+                            <div class="detail-item">
+                                <span class="detail-icon">💰</span>
+                                <span>Payout = Stake × Score × 10</span>
+                            </div>
                         </div>
                     </div>
                 </div>

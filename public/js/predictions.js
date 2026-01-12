@@ -38,7 +38,7 @@ const WINDOWS = {
 const state = {
     selectedAsset: 'SPY',
     selectedWindow: '1W',
-    chartType: 'candlestick',
+    chartType: 'line',  // Default to line chart
     stakeAmount: 100,
     chartData: [],
     lastPrice: 0,
@@ -62,9 +62,8 @@ const state = {
 
 // DOM Elements
 const elements = {
-    assetSelect: document.getElementById('assetSelect'),
-    windowSelect: document.getElementById('windowSelect'),
-    stakeAmount: document.getElementById('stakeAmount'),
+    assetSelector: document.getElementById('assetSelector'),
+    assetDropdownMenu: document.getElementById('assetDropdownMenu'),
     assetSymbol: document.getElementById('assetSymbol'),
     assetName: document.getElementById('assetName'),
     assetPrice: document.getElementById('assetPrice'),
@@ -85,7 +84,6 @@ const elements = {
     predictionsList: document.getElementById('predictionsList'),
     connectWalletBtn: document.getElementById('connectWalletBtn'),
     drawBtn: document.getElementById('drawBtn'),
-    eraseBtn: document.getElementById('eraseBtn'),
     clearBtn: document.getElementById('clearBtn'),
     undoBtn: document.getElementById('undoBtn'),
     timelineScrollContainer: document.getElementById('timelineScrollContainer'),
@@ -136,19 +134,23 @@ async function initializeApp() {
 // ================================================
 
 function setupEventListeners() {
-    // Asset and window selection
-    elements.assetSelect?.addEventListener('change', handleAssetChange);
-    elements.windowSelect?.addEventListener('change', handleWindowChange);
-    elements.stakeAmount?.addEventListener('input', handleStakeChange);
-
-    // Chart type buttons
-    document.querySelectorAll('.chart-type-btn').forEach(btn => {
-        btn.addEventListener('click', () => handleChartTypeChange(btn.dataset.type));
+    // Asset dropdown
+    elements.assetSelector?.addEventListener('click', toggleAssetDropdown);
+    document.querySelectorAll('.dropdown-item').forEach(item => {
+        item.addEventListener('click', (e) => {
+            const value = e.target.dataset.value;
+            if (value) handleAssetSelect(value);
+        });
+    });
+    // Close dropdown when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!elements.assetSelector?.contains(e.target) && !elements.assetDropdownMenu?.contains(e.target)) {
+            closeAssetDropdown();
+        }
     });
 
     // Drawing tools
     elements.drawBtn?.addEventListener('click', () => setActiveTool('draw'));
-    elements.eraseBtn?.addEventListener('click', () => setActiveTool('erase'));
     elements.clearBtn?.addEventListener('click', clearDrawing);
     elements.undoBtn?.addEventListener('click', undoDrawing);
 
@@ -166,6 +168,32 @@ function setupEventListeners() {
 
     // Timeline scroll - update expiry date
     elements.timelineScrollContainer?.addEventListener('scroll', debounce(updateExpiryFromScroll, 50));
+}
+
+function toggleAssetDropdown() {
+    elements.assetSelector?.classList.toggle('open');
+    elements.assetDropdownMenu?.classList.toggle('show');
+}
+
+function closeAssetDropdown() {
+    elements.assetSelector?.classList.remove('open');
+    elements.assetDropdownMenu?.classList.remove('show');
+}
+
+function handleAssetSelect(assetValue) {
+    state.selectedAsset = assetValue;
+    const asset = ASSETS[assetValue];
+
+    // Update display
+    if (elements.assetSymbol) elements.assetSymbol.textContent = assetValue;
+    if (elements.assetName) elements.assetName.textContent = asset?.name || assetValue;
+
+    // Close dropdown
+    closeAssetDropdown();
+
+    // Reload chart data
+    clearDrawing();
+    loadChartData();
 }
 
 function scrollToNow() {
@@ -983,17 +1011,16 @@ function updatePayoffDisplay() {
         elements.maxWin.textContent = `${maxWin.toLocaleString()} USDC`;
     }
 
-    if (state.predictedPrice !== null) {
-        const changePercent = Math.abs((state.predictedPrice - state.lastPrice) / state.lastPrice) * 100;
-        const multiplier = calculateMultiplier(changePercent);
-        const potentialWin = stake * multiplier;
+    if (state.predictedPrice !== null && state.drawingPath.length > 1) {
+        // Show max potential payout (actual payout determined by Riemann Sum at settlement)
+        const potentialWin = stake * maxMultiplier;
 
         if (elements.potentialPayoff) {
-            elements.potentialPayoff.textContent = `${potentialWin.toLocaleString()} USDC`;
+            elements.potentialPayoff.textContent = `Up to ${potentialWin.toLocaleString()} USDC`;
         }
 
         if (elements.payoffMultiplier) {
-            elements.payoffMultiplier.textContent = `${multiplier}x multiplier`;
+            elements.payoffMultiplier.textContent = 'Based on path accuracy';
         }
     } else {
         if (elements.potentialPayoff) {
@@ -1005,13 +1032,132 @@ function updatePayoffDisplay() {
     }
 }
 
-function calculateMultiplier(errorPercent) {
-    // Scoring tiers based on prediction accuracy
-    if (errorPercent <= 1) return 10;
-    if (errorPercent <= 2.5) return 5;
-    if (errorPercent <= 5) return 2;
-    if (errorPercent <= 10) return 1;
-    return 0;
+/**
+ * Calculate Riemann Sum score comparing predicted path vs actual prices
+ * @param {Array} predictedPath - Array of {time, price} points from drawing
+ * @param {Array} actualPrices - Array of {time, price} actual market prices (5-min intervals)
+ * @returns {number} Score between 0 and 1 (1 = perfect prediction)
+ */
+function calculateRiemannSumScore(predictedPath, actualPrices) {
+    if (!predictedPath || predictedPath.length < 2 || !actualPrices || actualPrices.length < 2) {
+        return 0;
+    }
+
+    const TICK_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes in milliseconds
+
+    // Get time range
+    const startTime = Math.min(predictedPath[0].time, actualPrices[0].time);
+    const endTime = Math.max(
+        predictedPath[predictedPath.length - 1].time,
+        actualPrices[actualPrices.length - 1].time
+    );
+
+    // Calculate number of 5-minute ticks
+    const numTicks = Math.floor((endTime - startTime) / TICK_INTERVAL_MS);
+    if (numTicks < 1) return 0;
+
+    let totalDifference = 0;
+    let totalActualValue = 0;
+
+    // Sample at each 5-minute tick
+    for (let i = 0; i <= numTicks; i++) {
+        const tickTime = startTime + (i * TICK_INTERVAL_MS);
+
+        // Interpolate predicted price at this tick
+        const predictedPrice = interpolatePrice(predictedPath, tickTime);
+
+        // Interpolate actual price at this tick
+        const actualPrice = interpolatePrice(actualPrices, tickTime);
+
+        if (predictedPrice !== null && actualPrice !== null) {
+            totalDifference += Math.abs(predictedPrice - actualPrice) * TICK_INTERVAL_MS;
+            totalActualValue += Math.abs(actualPrice) * TICK_INTERVAL_MS;
+        }
+    }
+
+    // Score = 1 - (∫|predicted - actual|dt / ∫|actual|dt)
+    if (totalActualValue === 0) return 0;
+
+    const score = Math.max(0, 1 - (totalDifference / totalActualValue));
+    return score;
+}
+
+/**
+ * Interpolate price at a given timestamp from a price path
+ * @param {Array} pricePath - Array of {time, price} points
+ * @param {number} targetTime - Timestamp to interpolate at
+ * @returns {number|null} Interpolated price or null if out of range
+ */
+function interpolatePrice(pricePath, targetTime) {
+    if (!pricePath || pricePath.length === 0) return null;
+
+    // Handle edge cases
+    if (targetTime <= pricePath[0].time) return pricePath[0].price;
+    if (targetTime >= pricePath[pricePath.length - 1].time) {
+        return pricePath[pricePath.length - 1].price;
+    }
+
+    // Find surrounding points
+    for (let i = 0; i < pricePath.length - 1; i++) {
+        const p1 = pricePath[i];
+        const p2 = pricePath[i + 1];
+
+        if (targetTime >= p1.time && targetTime <= p2.time) {
+            // Linear interpolation
+            const ratio = (targetTime - p1.time) / (p2.time - p1.time);
+            return p1.price + (p2.price - p1.price) * ratio;
+        }
+    }
+
+    return null;
+}
+
+/**
+ * Convert drawing path to timestamped price path for Riemann Sum
+ * @param {Array} drawingPath - Canvas coordinates from drawing
+ * @returns {Array} Array of {time, price} points
+ */
+function drawingPathToTimestampedPrices() {
+    if (!state.drawingPath || state.drawingPath.length < 2) return [];
+
+    const canvas = elements.predictionCanvas;
+    if (!canvas) return [];
+
+    const canvasWidth = canvas.width;
+    const canvasHeight = canvas.height;
+
+    // Get time range from expiry
+    const now = Date.now();
+    const expiryTime = state.expiryDate ? state.expiryDate.getTime() : now + (7 * 24 * 60 * 60 * 1000);
+    const timeRange = expiryTime - now;
+
+    // Get price range
+    const priceMin = priceRange.min;
+    const priceMax = priceRange.max;
+    const priceSpan = priceMax - priceMin;
+
+    // Convert each point
+    return state.drawingPath.map(point => {
+        // X position (0 to 1) maps to time (now to expiry)
+        const xRatio = point.x / canvasWidth;
+        const time = now + (xRatio * timeRange);
+
+        // Y position (0 to 1, inverted) maps to price
+        const yRatio = 1 - (point.y / canvasHeight);
+        const price = priceMin + (yRatio * priceSpan);
+
+        return { time, price };
+    });
+}
+
+/**
+ * Calculate payout multiplier from Riemann Sum score
+ * @param {number} score - Score between 0 and 1
+ * @returns {number} Multiplier (0 to 10)
+ */
+function scoreToMultiplier(score) {
+    // Linear scale: score 1.0 = 10x, score 0 = 0x
+    return Math.round(score * 10 * 100) / 100; // Round to 2 decimal places
 }
 
 function updateSubmitButton() {
@@ -1058,6 +1204,9 @@ async function submitPrediction() {
     // Check if contract is available
     const hasContract = Web3Integration.state.contract !== null;
 
+    // Convert drawing path to timestamped prices for Riemann Sum scoring
+    const timestampedPath = drawingPathToTimestampedPrices();
+
     // Create prediction object
     const prediction = {
         id: Date.now().toString(),
@@ -1071,7 +1220,10 @@ async function submitPrediction() {
         createdAt: new Date().toISOString(),
         endsAt: getEndDate().toISOString(),
         status: 'pending',
-        drawingPath: [...state.drawingPath]
+        drawingPath: [...state.drawingPath],
+        // Timestamped path for Riemann Sum scoring (5-min tick data)
+        timestampedPath: timestampedPath,
+        scoringMethod: 'riemann_sum'
     };
 
     // Show transaction modal
@@ -1252,36 +1404,6 @@ function renderPredictionsList() {
 // ================================================
 // Event Handlers
 // ================================================
-
-async function handleAssetChange(e) {
-    state.selectedAsset = e.target.value;
-    clearDrawing();
-    await loadChartData();
-    scrollToNow();
-}
-
-async function handleWindowChange(e) {
-    state.selectedWindow = e.target.value;
-    clearDrawing();
-    await loadChartData();
-    scrollToNow();
-}
-
-function handleStakeChange(e) {
-    state.stakeAmount = parseFloat(e.target.value) || 0;
-    updatePayoffDisplay();
-    updateSubmitButton();
-}
-
-function handleChartTypeChange(type) {
-    state.chartType = type;
-
-    document.querySelectorAll('.chart-type-btn').forEach(btn => {
-        btn.classList.toggle('active', btn.dataset.type === type);
-    });
-
-    renderChart();
-}
 
 function handleResize() {
     if (state.chart) {
