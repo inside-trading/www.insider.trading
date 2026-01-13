@@ -518,6 +518,7 @@
     flex-shrink: 0;
     width: 70%;
     min-width: 500px;
+    height: 100%;
     position: relative;
     background: var(--color-bg-secondary);
 }
@@ -576,6 +577,7 @@
     flex-shrink: 0;
     width: 50%;
     min-width: 300px;
+    height: 100%;
     position: relative;
     background: var(--color-bg-secondary);
 }

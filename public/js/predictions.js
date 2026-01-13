@@ -381,6 +381,17 @@ function renderChart() {
     const chartArea = elements.chartArea;
     if (!chartArea || typeof LightweightCharts === 'undefined') return;
 
+    // Ensure chart area has valid dimensions
+    const width = chartArea.clientWidth;
+    const height = chartArea.clientHeight;
+
+    if (width <= 0 || height <= 0) {
+        console.warn('Chart area has invalid dimensions, retrying...');
+        // Retry after a short delay to allow layout to complete
+        setTimeout(renderChart, 100);
+        return;
+    }
+
     // Clear existing chart
     if (state.chart) {
         state.chart.remove();
@@ -388,8 +399,8 @@ function renderChart() {
 
     // Create chart
     state.chart = LightweightCharts.createChart(chartArea, {
-        width: chartArea.clientWidth,
-        height: chartArea.clientHeight,
+        width: width,
+        height: height,
         layout: {
             background: { type: 'solid', color: 'transparent' },
             textColor: '#9CA3AF'
