@@ -3,13 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="Predict asset prices and earn rewards based on accuracy">
-    <title>Price Predictions | Insider Trading</title>
+    <meta name="description" content="insider.trading - price predictions">
+    <title>predict | insider.trading</title>
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/predictions.css">
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
@@ -19,29 +16,18 @@
     <script defer src="/_vercel/insights/script.js"></script>
 </head>
 <body>
-    <!-- Header -->
     <header class="header">
         <div class="header-container">
             <a href="/" class="logo">
-                <svg class="logo-icon" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <circle cx="20" cy="20" r="18" stroke="url(#logo-gradient)" stroke-width="3"/>
-                    <path d="M14 20L18 24L26 16" stroke="url(#logo-gradient)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                    <defs>
-                        <linearGradient id="logo-gradient" x1="0" y1="0" x2="40" y2="40">
-                            <stop stop-color="#00D4AA"/>
-                            <stop offset="1" stop-color="#7B61FF"/>
-                        </linearGradient>
-                    </defs>
+                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
                 </svg>
-                <span class="logo-text">Insider Trading</span>
+                <span>insider.trading</span>
             </a>
 
             <nav class="nav">
-                <a href="/" class="nav-link">Swap</a>
-                <a href="/predictions.html" class="nav-link active">Predictions</a>
-                <a href="/#pools" class="nav-link">Pools</a>
-                <a href="/#tokens" class="nav-link">Tokens</a>
-                <a href="/#stats" class="nav-link">Stats</a>
+                <a href="/" class="nav-link">swap</a>
+                <a href="/predictions.html" class="nav-link active">predict</a>
             </nav>
 
             <div class="header-actions">
@@ -52,10 +38,10 @@
                 <button class="connect-wallet-btn" id="connectWalletBtn">
                     <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
                         <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <path d="M16 13.5C16 14.3284 15.3284 15 14.5 15C13.6716 15 13 14.3284 13 13.5C13 12.6716 13.6716 12 14.5 12C15.3284 12 16 12.6716 16 13.5Z" fill="currentColor"/>
-                        <path d="M6 6V5C6 3.89543 6.89543 3 8 3H18C19.1046 3 20 3.89543 20 5V6" stroke="currentColor" stroke-width="2"/>
+                        <circle cx="14.5" cy="13" r="1.5" fill="currentColor"/>
+                        <path d="M6 6V5a2 2 0 012-2h10a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
                     </svg>
-                    Sign In
+                    connect
                 </button>
             </div>
 
@@ -67,58 +53,41 @@
         </div>
     </header>
 
-    <!-- Main Content -->
     <main class="main predictions-main">
-        <!-- Hero Section -->
-        <section class="predictions-hero">
-            <div class="predictions-hero-content">
-                <h1 class="predictions-title">Predict the <span class="gradient-text">Future</span></h1>
-                <p class="predictions-subtitle">Draw your price prediction and earn rewards based on accuracy</p>
-            </div>
-        </section>
-
-        <!-- Chart Section -->
         <section class="chart-section">
             <div class="chart-container">
-                <!-- Asset Info Bar -->
                 <div class="asset-info-bar">
                     <div class="asset-info-left">
                         <div class="asset-selector" id="assetSelector">
                             <span class="asset-symbol" id="assetSymbol">SPY</span>
-                            <span class="asset-name" id="assetName">S&P 500 ETF</span>
+                            <span class="asset-name" id="assetName">S&P 500</span>
                             <svg class="asset-dropdown-arrow" viewBox="0 0 24 24" fill="none">
                                 <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                             </svg>
                         </div>
-                        <!-- Asset Dropdown Menu -->
                         <div class="asset-dropdown-menu" id="assetDropdownMenu">
                             <div class="dropdown-group">
                                 <span class="dropdown-group-label">Stocks</span>
-                                <div class="dropdown-item" data-value="SPY">SPY - S&P 500 ETF</div>
-                                <div class="dropdown-item" data-value="QQQ">QQQ - Nasdaq 100 ETF</div>
-                                <div class="dropdown-item" data-value="AAPL">AAPL - Apple Inc.</div>
-                                <div class="dropdown-item" data-value="TSLA">TSLA - Tesla Inc.</div>
-                                <div class="dropdown-item" data-value="MSFT">MSFT - Microsoft</div>
-                                <div class="dropdown-item" data-value="GOOGL">GOOGL - Alphabet</div>
-                                <div class="dropdown-item" data-value="AMZN">AMZN - Amazon</div>
-                                <div class="dropdown-item" data-value="NVDA">NVDA - NVIDIA</div>
-                                <div class="dropdown-item" data-value="META">META - Meta Platforms</div>
+                                <div class="dropdown-item" data-value="SPY">SPY</div>
+                                <div class="dropdown-item" data-value="QQQ">QQQ</div>
+                                <div class="dropdown-item" data-value="AAPL">AAPL</div>
+                                <div class="dropdown-item" data-value="TSLA">TSLA</div>
+                                <div class="dropdown-item" data-value="MSFT">MSFT</div>
+                                <div class="dropdown-item" data-value="NVDA">NVDA</div>
                             </div>
                             <div class="dropdown-group">
                                 <span class="dropdown-group-label">Crypto</span>
-                                <div class="dropdown-item" data-value="BTC-USD">Bitcoin (BTC)</div>
-                                <div class="dropdown-item" data-value="ETH-USD">Ethereum (ETH)</div>
-                                <div class="dropdown-item" data-value="SOL-USD">Solana (SOL)</div>
+                                <div class="dropdown-item" data-value="BTC-USD">BTC</div>
+                                <div class="dropdown-item" data-value="ETH-USD">ETH</div>
+                                <div class="dropdown-item" data-value="SOL-USD">SOL</div>
                             </div>
                             <div class="dropdown-group">
                                 <span class="dropdown-group-label">Commodities</span>
                                 <div class="dropdown-item" data-value="GC=F">Gold</div>
-                                <div class="dropdown-item" data-value="SI=F">Silver</div>
-                                <div class="dropdown-item" data-value="CL=F">Crude Oil</div>
+                                <div class="dropdown-item" data-value="CL=F">Oil</div>
                             </div>
                         </div>
                     </div>
-                    <!-- Drawing Tools -->
                     <div class="drawing-tools">
                         <button class="tool-btn active" id="drawBtn" title="Draw">
                             <svg viewBox="0 0 24 24" fill="none">
@@ -126,19 +95,17 @@
                                 <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
                             </svg>
                         </button>
-                        <button class="tool-btn" id="clearBtn" title="Clear All">
+                        <button class="tool-btn" id="clearBtn" title="Clear">
                             <svg viewBox="0 0 24 24" fill="none">
                                 <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M8 6V4C8 3.4 8.4 3 9 3H15C15.6 3 16 3.4 16 4V6" stroke="currentColor" stroke-width="2"/>
-                                <path d="M19 6V20C19 20.6 18.6 21 18 21H6C5.4 21 5 20.6 5 20V6" stroke="currentColor" stroke-width="2"/>
-                                <path d="M10 11V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M14 11V16" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" stroke="currentColor" stroke-width="2"/>
+                                <path d="M19 6v14a1 1 0 01-1 1H6a1 1 0 01-1-1V6" stroke="currentColor" stroke-width="2"/>
                             </svg>
                         </button>
                         <div class="tool-divider"></div>
                         <button class="tool-btn" id="undoBtn" title="Undo">
                             <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M3 10H16C18.7614 10 21 12.2386 21 15C21 17.7614 18.7614 20 16 20H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                <path d="M3 10H16C18.76 10 21 12.24 21 15s-2.24 5-5 5H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                                 <path d="M7 6L3 10L7 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                             </svg>
                         </button>
@@ -149,137 +116,97 @@
                     </div>
                 </div>
 
-                <!-- Expiry Date Display -->
                 <div class="expiry-display" id="expiryDisplay">
-                    <span class="expiry-label">Expiry:</span>
+                    <span class="expiry-label">expires:</span>
                     <span class="expiry-date" id="expiryDate">-</span>
                 </div>
 
-                <!-- Scrollable Timeline Container -->
                 <div class="timeline-scroll-container" id="timelineScrollContainer">
                     <div class="timeline-content" id="timelineContent">
-                        <!-- Chart and Canvas Row -->
                         <div class="timeline-charts-row">
-                            <!-- Historical Chart Area -->
                             <div class="chart-area" id="chartArea">
                                 <div class="chart-loading" id="chartLoading">
                                     <div class="loading-spinner"></div>
-                                    <span>Loading chart data...</span>
+                                    <span>loading...</span>
                                 </div>
                             </div>
-                            <!-- Now Divider Line -->
                             <div class="now-divider" id="nowDivider">
-                                <div class="now-label">Now</div>
+                                <div class="now-label">now</div>
                             </div>
-                            <!-- Prediction Canvas Area -->
                             <div class="prediction-area" id="predictionArea">
                                 <canvas id="predictionCanvas"></canvas>
                                 <div class="prediction-overlay" id="predictionOverlay">
                                     <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
-                                        <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                        <path d="M2 2L9.586 9.586" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                        <circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
+                                        <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
                                     </svg>
-                                    <p>Draw your price prediction</p>
-                                    <span class="hint">Scroll horizontally to set expiry • Draw to predict</span>
+                                    <p>draw prediction</p>
+                                    <span class="hint">scroll to set expiry</span>
                                 </div>
                             </div>
                         </div>
-                        <!-- Unified X-Axis Labels (scrolls with content) -->
-                        <div class="unified-x-axis" id="unifiedXAxis">
-                            <!-- Generated by JS -->
-                        </div>
+                        <div class="unified-x-axis" id="unifiedXAxis"></div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Prediction Info Section -->
         <section class="prediction-info-section">
             <div class="prediction-info-container">
                 <div class="info-card">
-                    <h3 class="info-card-title">Prediction Details</h3>
+                    <h3 class="info-card-title">Prediction</h3>
                     <div class="info-rows">
                         <div class="info-row">
-                            <span class="info-label">Current Price</span>
+                            <span class="info-label">current</span>
                             <span class="info-value" id="currentPrice">$0.00</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Your Predicted Price</span>
-                            <span class="info-value highlight" id="predictedPrice">Draw to predict</span>
+                            <span class="info-label">target</span>
+                            <span class="info-value highlight" id="predictedPrice">-</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Predicted Change</span>
+                            <span class="info-label">change</span>
                             <span class="info-value" id="predictedChange">-</span>
                         </div>
                         <div class="info-row">
-                            <span class="info-label">Prediction Ends</span>
+                            <span class="info-label">expires</span>
                             <span class="info-value" id="predictionEnds">-</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="info-card">
-                    <h3 class="info-card-title">Potential Payoff</h3>
+                    <h3 class="info-card-title">Payoff</h3>
                     <div class="payoff-display">
                         <div class="payoff-amount" id="potentialPayoff">-</div>
-                        <div class="payoff-multiplier" id="payoffMultiplier">Up to 10x</div>
+                        <div class="payoff-multiplier" id="payoffMultiplier">up to 10x</div>
                     </div>
                     <div class="payoff-breakdown">
                         <div class="breakdown-item">
-                            <span class="breakdown-label">Your Stake</span>
+                            <span class="breakdown-label">stake</span>
                             <span class="breakdown-value" id="stakeDisplay">100 USDC</span>
                         </div>
                         <div class="breakdown-item">
-                            <span class="breakdown-label">Max Win</span>
+                            <span class="breakdown-label">max</span>
                             <span class="breakdown-value highlight" id="maxWin">1,000 USDC</span>
-                        </div>
-                    </div>
-                    <p class="payoff-note">Payoff scales with prediction accuracy. Perfect predictions earn maximum rewards.</p>
-                </div>
-
-                <div class="info-card">
-                    <h3 class="info-card-title">How Scoring Works</h3>
-                    <div class="scoring-explanation">
-                        <p class="scoring-method">Your score is calculated using the <strong>path accuracy</strong> of your prediction compared to actual prices over time.</p>
-                        <div class="scoring-formula">
-                            <span class="formula-label">Score Formula:</span>
-                            <code>Score = 1 - (∫|predicted - actual|dt / ∫|actual|dt)</code>
-                        </div>
-                        <div class="scoring-details">
-                            <div class="detail-item">
-                                <span class="detail-icon">📊</span>
-                                <span>Prices compared every 5 minutes</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">📈</span>
-                                <span>Entire path matters, not just final price</span>
-                            </div>
-                            <div class="detail-item">
-                                <span class="detail-icon">💰</span>
-                                <span>Payout = Stake × Score × 10</span>
-                            </div>
                         </div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <!-- Submit Section -->
         <section class="submit-section">
             <button class="submit-prediction-btn" id="submitPredictionBtn" disabled>
-                <span class="btn-text">Draw Your Prediction First</span>
+                <span class="btn-text">draw prediction first</span>
                 <svg viewBox="0 0 24 24" fill="none" class="btn-icon">
                     <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                 </svg>
             </button>
         </section>
 
-        <!-- Active Predictions Section -->
         <section class="active-predictions-section">
             <div class="section-header-row">
-                <h2 class="section-title">Your Active Predictions</h2>
+                <h2 class="section-title">active predictions</h2>
             </div>
             <div class="predictions-list" id="predictionsList">
                 <div class="empty-predictions">
@@ -287,8 +214,7 @@
                         <path d="M3 3V21H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
                         <path d="M7 14L11 10L15 14L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
-                    <p>No active predictions</p>
-                    <span>Make your first prediction above!</span>
+                    <p>no active predictions</p>
                 </div>
             </div>
         </section>
