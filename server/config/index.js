@@ -4,8 +4,11 @@ module.exports = {
   corsOrigins: process.env.CORS_ORIGINS?.split(',') || [
     'http://localhost:3000',
     'http://localhost:3001',
+    'http://localhost:5173',
     'https://insider.trading',
     'https://www.insider.trading',
+    'https://wwwinsidertrading.vercel.app',
+    'https://www-insider-trading.vercel.app',
     'https://wwwinsidertrading-production.up.railway.app'
   ],
   rateLimit: {
