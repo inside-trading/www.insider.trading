@@ -3,10 +3,11 @@
 // ================================================
 
 const CONFIG = {
-    // API Base URL - Update this after deploying backend to Railway
-    // For local development: '/api'
-    // For production: 'https://your-app.up.railway.app/api'
+    // API Base URL - defaults to relative path for local development
     API_BASE: '/api',
+
+    // Railway backend URL for production
+    RAILWAY_API_BASE: 'https://wwwinsidertrading-production.up.railway.app/api',
 
     // Set to true when backend is deployed separately
     USE_EXTERNAL_API: false,
@@ -21,12 +22,11 @@ const CONFIG = {
     }
 };
 
-// Auto-detect production environment
+// Auto-detect production environment (Vercel serves static files only)
 if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
     // In production on Vercel, use the Railway backend URL
-    // UPDATE THIS after deploying to Railway:
-    // CONFIG.API_BASE = 'https://your-railway-app.up.railway.app/api';
-    // CONFIG.USE_EXTERNAL_API = true;
+    CONFIG.API_BASE = CONFIG.RAILWAY_API_BASE;
+    CONFIG.USE_EXTERNAL_API = true;
 }
 
 // Export for use in other scripts
