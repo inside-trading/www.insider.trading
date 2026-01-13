@@ -327,13 +327,34 @@ async function loadChartData() {
     showLoading(true);
 
     try {
+        // Check if chart library is loaded
+        if (typeof LightweightCharts === 'undefined') {
+            throw new Error('Chart library failed to load. Please refresh the page.');
+        }
+
         const data = await fetchPriceData(state.selectedAsset, state.selectedWindow);
+
+        // Validate the data
+        if (!data || !data.candles || !Array.isArray(data.candles)) {
+            throw new Error('Invalid data format received from API');
+        }
+
+        if (data.candles.length === 0) {
+            throw new Error('No price data available for this asset');
+        }
+
         state.chartData = data.candles;
         state.lastPrice = data.lastPrice;
         state.priceChange = data.priceChange;
 
         updateAssetInfo();
-        renderChart();
+
+        // Render chart with error handling
+        const chartRendered = renderChart();
+        if (!chartRendered) {
+            throw new Error('Failed to render chart. Please refresh the page.');
+        }
+
         setupPredictionCanvas();
     } catch (error) {
         console.error('Failed to load chart data:', error);
@@ -344,8 +365,26 @@ async function loadChartData() {
 }
 
 async function fetchPriceData(symbol, window) {
-    const response = await fetch(`${API_BASE}/prices/${symbol}?window=${window}`);
-    const data = await response.json();
+    let response;
+
+    try {
+        response = await fetch(`${API_BASE}/prices/${symbol}?window=${window}`);
+    } catch (networkError) {
+        console.error('Network error fetching price data:', networkError);
+        throw new Error('Network error. Please check your connection and try again.');
+    }
+
+    if (!response.ok) {
+        throw new Error(`Server error: ${response.status} ${response.statusText}`);
+    }
+
+    let data;
+    try {
+        data = await response.json();
+    } catch (parseError) {
+        console.error('Error parsing response:', parseError);
+        throw new Error('Invalid response from server');
+    }
 
     if (data.success) {
         return data.data;
@@ -377,26 +416,52 @@ function showChartError(message) {
     `;
 }
 
-function renderChart() {
+function renderChart(retryCount = 0) {
+    const MAX_RETRIES = 5;
     const chartArea = elements.chartArea;
-    if (!chartArea || typeof LightweightCharts === 'undefined') return;
+
+    if (!chartArea) {
+        console.error('Chart area element not found');
+        return false;
+    }
+
+    if (typeof LightweightCharts === 'undefined') {
+        console.error('LightweightCharts library not loaded');
+        return false;
+    }
+
+    // Validate chart data exists
+    if (!state.chartData || state.chartData.length === 0) {
+        console.error('No chart data available');
+        return false;
+    }
 
     // Ensure chart area has valid dimensions
     const width = chartArea.clientWidth;
     const height = chartArea.clientHeight;
 
     if (width <= 0 || height <= 0) {
-        console.warn('Chart area has invalid dimensions, retrying...');
-        // Retry after a short delay to allow layout to complete
-        setTimeout(renderChart, 100);
-        return;
+        if (retryCount < MAX_RETRIES) {
+            console.warn(`Chart area has invalid dimensions (${width}x${height}), retrying... (${retryCount + 1}/${MAX_RETRIES})`);
+            // Retry after a short delay to allow layout to complete
+            setTimeout(() => renderChart(retryCount + 1), 100);
+            return true; // Return true to indicate retry is in progress
+        } else {
+            console.error('Chart area dimensions invalid after max retries');
+            return false;
+        }
     }
 
     // Clear existing chart
     if (state.chart) {
-        state.chart.remove();
+        try {
+            state.chart.remove();
+        } catch (e) {
+            console.warn('Error removing existing chart:', e);
+        }
     }
 
+    try {
     // Create chart
     state.chart = LightweightCharts.createChart(chartArea, {
         width: width,
@@ -459,14 +524,37 @@ function renderChart() {
         });
     }
 
-    // Set data
+    // Set data with validation
     if (state.chartType === 'candlestick') {
-        state.series.setData(state.chartData);
+        // Filter out invalid candlestick data
+        const validCandles = state.chartData.filter(d =>
+            d && typeof d.time === 'number' && !isNaN(d.time) &&
+            typeof d.open === 'number' && !isNaN(d.open) &&
+            typeof d.close === 'number' && !isNaN(d.close)
+        );
+
+        if (validCandles.length === 0) {
+            console.error('No valid candlestick data after filtering');
+            throw new Error('Invalid chart data');
+        }
+
+        state.series.setData(validCandles);
     } else {
-        const lineData = state.chartData.map(d => ({
-            time: d.time,
-            value: d.close
-        }));
+        // Filter out invalid line data
+        const lineData = state.chartData
+            .filter(d => d && typeof d.time === 'number' && !isNaN(d.time) &&
+                        typeof d.close === 'number' && !isNaN(d.close))
+            .map(d => ({
+                time: d.time,
+                value: d.close
+            }));
+
+        if (lineData.length === 0) {
+            console.error('No valid line data after filtering');
+            throw new Error('Invalid chart data');
+        }
+
+        console.log(`Setting chart data: ${lineData.length} points, first: ${JSON.stringify(lineData[0])}, last: ${JSON.stringify(lineData[lineData.length - 1])}`);
         state.series.setData(lineData);
     }
 
@@ -496,6 +584,13 @@ function renderChart() {
         // Small delay to ensure chart has updated
         setTimeout(syncPriceRangeWithChart, 50);
     });
+
+    } catch (error) {
+        console.error('Error creating chart:', error);
+        return false;
+    }
+
+    return true; // Chart rendered successfully
 }
 
 function updateCanvasPriceRange() {
