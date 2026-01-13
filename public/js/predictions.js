@@ -110,10 +110,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function initializeApp() {
+    console.log('[Predictions] Initializing app...');
+
+    // Wait for DOM to be fully ready with dimensions
+    await waitForLayout();
+
     setupCanvas();
     setupEventListeners();
     setupWeb3EventListeners();
-    await loadChartData();
+
+    try {
+        await loadChartData();
+    } catch (error) {
+        console.error('[Predictions] Failed to load initial chart data:', error);
+    }
+
     loadPredictions();
     updatePayoffDisplay();
 
@@ -121,13 +132,36 @@ async function initializeApp() {
     scrollToNow();
 
     // Check if already connected (page refresh)
-    if (Web3Integration.isWeb3Available() && window.ethereum.selectedAddress) {
+    if (typeof Web3Integration !== 'undefined' && Web3Integration.isWeb3Available() && window.ethereum?.selectedAddress) {
         try {
             await connectWallet();
         } catch (e) {
             console.log('Auto-connect failed:', e);
         }
     }
+
+    console.log('[Predictions] App initialized');
+}
+
+/**
+ * Wait for layout to be ready (elements have dimensions)
+ */
+function waitForLayout() {
+    return new Promise((resolve) => {
+        const checkLayout = () => {
+            const chartArea = elements.chartArea;
+            if (chartArea && chartArea.clientWidth > 0 && chartArea.clientHeight > 0) {
+                resolve();
+            } else {
+                requestAnimationFrame(checkLayout);
+            }
+        };
+
+        // Give browser time to render
+        requestAnimationFrame(() => {
+            requestAnimationFrame(checkLayout);
+        });
+    });
 }
 
 // ================================================
@@ -325,29 +359,38 @@ function setupCanvasEvents() {
 
 async function loadChartData() {
     showLoading(true);
+    console.log(`[Chart] Loading data for ${state.selectedAsset} (${state.selectedWindow})...`);
 
     try {
         // Check if chart library is loaded
         if (typeof LightweightCharts === 'undefined') {
+            console.error('[Chart] LightweightCharts library not loaded');
             throw new Error('Chart library failed to load. Please refresh the page.');
         }
 
+        console.log(`[Chart] Fetching price data from ${API_BASE}...`);
         const data = await fetchPriceData(state.selectedAsset, state.selectedWindow);
 
         // Validate the data
         if (!data || !data.candles || !Array.isArray(data.candles)) {
+            console.error('[Chart] Invalid data format:', data);
             throw new Error('Invalid data format received from API');
         }
 
         if (data.candles.length === 0) {
+            console.error('[Chart] No candles in response');
             throw new Error('No price data available for this asset');
         }
 
+        console.log(`[Chart] Received ${data.candles.length} candles from ${data.source || 'unknown'}`);
         state.chartData = data.candles;
         state.lastPrice = data.lastPrice;
         state.priceChange = data.priceChange;
 
         updateAssetInfo();
+
+        // Ensure chart area has dimensions before rendering
+        await waitForLayout();
 
         // Render chart with error handling
         const chartRendered = renderChart();
@@ -355,9 +398,10 @@ async function loadChartData() {
             throw new Error('Failed to render chart. Please refresh the page.');
         }
 
+        console.log('[Chart] Chart rendered successfully');
         setupPredictionCanvas();
     } catch (error) {
-        console.error('Failed to load chart data:', error);
+        console.error('[Chart] Failed to load chart data:', error);
         showChartError(error.message || 'Failed to load price data');
     }
 
@@ -420,46 +464,68 @@ function renderChart(retryCount = 0) {
     const MAX_RETRIES = 5;
     const chartArea = elements.chartArea;
 
+    console.log(`[Chart] renderChart called (attempt ${retryCount + 1})`);
+
     if (!chartArea) {
-        console.error('Chart area element not found');
+        console.error('[Chart] Chart area element not found');
         return false;
     }
 
     if (typeof LightweightCharts === 'undefined') {
-        console.error('LightweightCharts library not loaded');
+        console.error('[Chart] LightweightCharts library not loaded');
         return false;
     }
 
     // Validate chart data exists
     if (!state.chartData || state.chartData.length === 0) {
-        console.error('No chart data available');
+        console.error('[Chart] No chart data available');
         return false;
     }
 
-    // Ensure chart area has valid dimensions
-    const width = chartArea.clientWidth;
-    const height = chartArea.clientHeight;
+    // Get dimensions
+    let width = chartArea.clientWidth;
+    let height = chartArea.clientHeight;
+
+    console.log(`[Chart] Chart area dimensions: ${width}x${height}`);
+
+    // If dimensions are invalid, try to get from offset
+    if (width <= 0) {
+        width = chartArea.offsetWidth || 600;
+    }
+    if (height <= 0) {
+        height = chartArea.offsetHeight || 370;
+    }
+
+    // Force minimum dimensions
+    width = Math.max(width, 300);
+    height = Math.max(height, 200);
 
     if (width <= 0 || height <= 0) {
         if (retryCount < MAX_RETRIES) {
-            console.warn(`Chart area has invalid dimensions (${width}x${height}), retrying... (${retryCount + 1}/${MAX_RETRIES})`);
-            // Retry after a short delay to allow layout to complete
-            setTimeout(() => renderChart(retryCount + 1), 100);
-            return true; // Return true to indicate retry is in progress
+            console.warn(`[Chart] Retrying with dimensions (${width}x${height})... (${retryCount + 1}/${MAX_RETRIES})`);
+            setTimeout(() => renderChart(retryCount + 1), 150 * (retryCount + 1));
+            return true;
         } else {
-            console.error('Chart area dimensions invalid after max retries');
+            console.error('[Chart] Chart area dimensions invalid after max retries');
             return false;
         }
     }
+
+    console.log(`[Chart] Using dimensions: ${width}x${height}`);
 
     // Clear existing chart
     if (state.chart) {
         try {
             state.chart.remove();
+            state.chart = null;
+            state.series = null;
         } catch (e) {
-            console.warn('Error removing existing chart:', e);
+            console.warn('[Chart] Error removing existing chart:', e);
         }
     }
+
+    // Clear the container
+    chartArea.innerHTML = '';
 
     try {
     // Create chart
@@ -638,23 +704,50 @@ function updateAssetInfo() {
 
 function setupCanvas() {
     const canvas = elements.predictionCanvas;
-    if (!canvas) return;
+    if (!canvas) {
+        console.error('[Canvas] Canvas element not found');
+        return;
+    }
+
+    console.log('[Canvas] Setting up prediction canvas...');
 
     // Set canvas size
     resizeCanvas();
 
     // Get context
     ctx = canvas.getContext('2d');
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
+    if (ctx) {
+        ctx.lineCap = 'round';
+        ctx.lineJoin = 'round';
+        console.log('[Canvas] Canvas context initialized');
+    } else {
+        console.error('[Canvas] Failed to get 2d context');
+    }
 }
 
 function resizeCanvas() {
     const canvas = elements.predictionCanvas;
-    const container = canvas.parentElement;
+    if (!canvas) return;
 
-    canvas.width = container.clientWidth;
-    canvas.height = container.clientHeight;
+    const container = canvas.parentElement;
+    if (!container) return;
+
+    // Get container dimensions
+    let width = container.clientWidth;
+    let height = container.clientHeight;
+
+    // Fallback to offset dimensions
+    if (width <= 0) width = container.offsetWidth;
+    if (height <= 0) height = container.offsetHeight;
+
+    // Use minimum dimensions if still invalid
+    width = Math.max(width, 200);
+    height = Math.max(height, 200);
+
+    console.log(`[Canvas] Setting canvas size: ${width}x${height}`);
+
+    canvas.width = width;
+    canvas.height = height;
     canvasRect = canvas.getBoundingClientRect();
 
     // Redraw existing path

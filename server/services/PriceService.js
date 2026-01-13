@@ -1,11 +1,14 @@
 // Price Service - Fetches historical price data
-// Uses Twelve Data API for stocks, crypto, and commodities
+// Uses Twelve Data API as primary, Yahoo Finance as fallback
 
 const https = require('https');
 
 // Twelve Data API configuration
 const TWELVE_DATA_BASE_URL = 'api.twelvedata.com';
 const API_KEY = process.env.TWELVE_DATA_API_KEY;
+
+// Yahoo Finance as fallback
+const YAHOO_FINANCE_BASE_URL = 'query1.finance.yahoo.com';
 
 // Window configurations for Twelve Data
 // interval options: 1min, 5min, 15min, 30min, 45min, 1h, 2h, 4h, 1day, 1week, 1month
@@ -60,20 +63,178 @@ const ASSET_TYPES = {
     'GC=F': 'commodity', 'SI=F': 'commodity', 'CL=F': 'commodity'
 };
 
+// Yahoo Finance symbol mappings (uses same symbols for stocks, different for crypto/commodities)
+const YAHOO_SYMBOLS = {
+    'SPY': 'SPY',
+    'QQQ': 'QQQ',
+    'AAPL': 'AAPL',
+    'TSLA': 'TSLA',
+    'MSFT': 'MSFT',
+    'GOOGL': 'GOOGL',
+    'AMZN': 'AMZN',
+    'NVDA': 'NVDA',
+    'META': 'META',
+    'BTC-USD': 'BTC-USD',
+    'ETH-USD': 'ETH-USD',
+    'SOL-USD': 'SOL-USD',
+    'GC=F': 'GC=F',
+    'SI=F': 'SI=F',
+    'CL=F': 'CL=F'
+};
+
+// Yahoo Finance interval mappings
+const YAHOO_INTERVALS = {
+    '1D': { interval: '15m', range: '1mo' },
+    '1W': { interval: '1h', range: '3mo' },
+    '1M': { interval: '1d', range: '6mo' },
+    '1Y': { interval: '1d', range: '2y' },
+    '3Y': { interval: '1wk', range: '5y' },
+    '5Y': { interval: '1wk', range: '10y' },
+    '10Y': { interval: '1mo', range: 'max' }
+};
+
 class PriceService {
     /**
      * Get historical prices for an asset
+     * Tries Twelve Data first, falls back to Yahoo Finance
      */
     static async getHistoricalPrices(symbol, window = '1W') {
-        if (!API_KEY) {
-            throw new Error('TWELVE_DATA_API_KEY is not configured');
+        const errors = [];
+
+        // Try Twelve Data first (if API key is configured)
+        if (API_KEY) {
+            try {
+                const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
+                const twelveDataSymbol = ASSET_SYMBOLS[symbol] || symbol;
+                const data = await this.fetchTwelveData(symbol, twelveDataSymbol, config.interval, config.outputsize);
+                console.log(`[PriceService] Twelve Data success for ${symbol}`);
+                return data;
+            } catch (error) {
+                console.error(`[PriceService] Twelve Data failed for ${symbol}:`, error.message);
+                errors.push(`Twelve Data: ${error.message}`);
+            }
+        } else {
+            console.warn('[PriceService] TWELVE_DATA_API_KEY not configured, using fallback');
+            errors.push('Twelve Data: API key not configured');
         }
 
-        const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
-        const twelveDataSymbol = ASSET_SYMBOLS[symbol] || symbol;
+        // Fallback to Yahoo Finance
+        try {
+            const data = await this.fetchYahooFinance(symbol, window);
+            console.log(`[PriceService] Yahoo Finance success for ${symbol}`);
+            return data;
+        } catch (error) {
+            console.error(`[PriceService] Yahoo Finance failed for ${symbol}:`, error.message);
+            errors.push(`Yahoo Finance: ${error.message}`);
+        }
 
-        const data = await this.fetchTwelveData(symbol, twelveDataSymbol, config.interval, config.outputsize);
-        return data;
+        // All sources failed
+        throw new Error(`All price sources failed: ${errors.join('; ')}`);
+    }
+
+    /**
+     * Fetch data from Yahoo Finance API
+     */
+    static async fetchYahooFinance(symbol, window = '1W') {
+        const yahooSymbol = YAHOO_SYMBOLS[symbol] || symbol;
+        const config = YAHOO_INTERVALS[window] || YAHOO_INTERVALS['1W'];
+
+        return new Promise((resolve, reject) => {
+            const path = `/v8/finance/chart/${encodeURIComponent(yahooSymbol)}?interval=${config.interval}&range=${config.range}`;
+
+            const options = {
+                hostname: YAHOO_FINANCE_BASE_URL,
+                path: path,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+                },
+                timeout: 15000
+            };
+
+            const req = https.request(options, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`Yahoo HTTP ${res.statusCode}`));
+                    return;
+                }
+
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+
+                        if (!json.chart || !json.chart.result || json.chart.result.length === 0) {
+                            reject(new Error('No Yahoo data returned'));
+                            return;
+                        }
+
+                        const result = json.chart.result[0];
+                        const quotes = result.indicators?.quote?.[0];
+                        const timestamps = result.timestamp;
+
+                        if (!timestamps || !quotes || timestamps.length === 0) {
+                            reject(new Error('Invalid Yahoo data structure'));
+                            return;
+                        }
+
+                        // Convert to candle format
+                        const candles = [];
+                        for (let i = 0; i < timestamps.length; i++) {
+                            const open = quotes.open?.[i];
+                            const high = quotes.high?.[i];
+                            const low = quotes.low?.[i];
+                            const close = quotes.close?.[i];
+                            const volume = quotes.volume?.[i];
+
+                            // Skip invalid data points
+                            if (open == null || close == null || isNaN(open) || isNaN(close)) {
+                                continue;
+                            }
+
+                            candles.push({
+                                time: timestamps[i],
+                                open: parseFloat(open),
+                                high: parseFloat(high) || parseFloat(open),
+                                low: parseFloat(low) || parseFloat(open),
+                                close: parseFloat(close),
+                                volume: parseInt(volume) || 0
+                            });
+                        }
+
+                        if (candles.length < 5) {
+                            reject(new Error('Insufficient Yahoo data points'));
+                            return;
+                        }
+
+                        const lastPrice = candles[candles.length - 1].close;
+                        const firstPrice = candles[0].open;
+                        const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
+
+                        resolve({
+                            symbol: symbol,
+                            candles,
+                            lastPrice,
+                            priceChange,
+                            currency: result.meta?.currency || 'USD',
+                            exchange: result.meta?.exchangeName || '',
+                            source: 'yahoo'
+                        });
+                    } catch (e) {
+                        reject(new Error(`Yahoo parse error: ${e.message}`));
+                    }
+                });
+            });
+
+            req.on('error', (e) => reject(new Error(`Yahoo network error: ${e.message}`)));
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Yahoo request timeout'));
+            });
+
+            req.end();
+        });
     }
 
     /**
