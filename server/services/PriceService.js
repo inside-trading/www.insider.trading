@@ -370,6 +370,101 @@ class PriceService {
     }
 
     /**
+     * Get batch token prices for Token.js integration
+     * @param {string[]} symbols - Array of token symbols (ETH, BTC, etc.)
+     * @returns {Object} Object with symbol keys and price values
+     */
+    static async getBatchTokenPrices(symbols) {
+        if (!API_KEY) {
+            throw new Error('TWELVE_DATA_API_KEY is not configured');
+        }
+
+        const results = {};
+
+        // Map token symbols to TwelveData crypto format
+        const tokenMap = {
+            'ETH': 'ETH/USD',
+            'BTC': 'BTC/USD',
+            'SOL': 'SOL/USD',
+            'MATIC': 'MATIC/USD',
+            'LINK': 'LINK/USD',
+            'UNI': 'UNI/USD',
+            'AAVE': 'AAVE/USD',
+            'ARB': 'ARB/USD',
+            'OP': 'OP/USD',
+            'BNB': 'BNB/USD',
+            'CRV': 'CRV/USD'
+        };
+
+        // Filter to supported symbols
+        const validSymbols = symbols.filter(s => tokenMap[s]);
+        if (validSymbols.length === 0) {
+            return results;
+        }
+
+        // TwelveData supports batch price requests
+        const twelveDataSymbols = validSymbols.map(s => tokenMap[s]).join(',');
+
+        return new Promise((resolve, reject) => {
+            const path = `/price?symbol=${encodeURIComponent(twelveDataSymbols)}&apikey=${API_KEY}`;
+
+            const options = {
+                hostname: TWELVE_DATA_BASE_URL,
+                path: path,
+                method: 'GET',
+                headers: {
+                    'Accept': 'application/json'
+                },
+                timeout: 15000
+            };
+
+            const req = https.request(options, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+
+                        // Handle single symbol response
+                        if (json.price !== undefined) {
+                            results[validSymbols[0]] = parseFloat(json.price);
+                            resolve(results);
+                            return;
+                        }
+
+                        // Handle multiple symbols - response is keyed by symbol
+                        for (const symbol of validSymbols) {
+                            const twelveSymbol = tokenMap[symbol];
+                            const priceData = json[twelveSymbol];
+
+                            if (priceData && priceData.price) {
+                                results[symbol] = parseFloat(priceData.price);
+                            }
+                        }
+
+                        resolve(results);
+                    } catch (e) {
+                        reject(new Error(`Parse error: ${e.message}`));
+                    }
+                });
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+
+            req.end();
+        });
+    }
+
+    /**
      * Get supported symbols list
      */
     static getSupportedSymbols() {
