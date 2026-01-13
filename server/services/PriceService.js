@@ -1,36 +1,43 @@
-// Price Service - Fetches historical price data
-// Uses Yahoo Finance API (via query endpoints)
+// Price Service - Fetches historical price data from TwelveData API
 
 const https = require('https');
 
-// Window configurations
+// TwelveData API configuration
+const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY;
+const TWELVE_DATA_BASE_URL = 'https://api.twelvedata.com';
+
+// Window configurations for TwelveData
 const WINDOW_CONFIG = {
-    '1D': { range: '5d', interval: '15m' },
-    '1W': { range: '1mo', interval: '1h' },
-    '1M': { range: '6mo', interval: '1d' },
-    '1Y': { range: '2y', interval: '1d' },
-    '3Y': { range: '5y', interval: '1wk' },
-    '5Y': { range: '10y', interval: '1wk' },
-    '10Y': { range: 'max', interval: '1mo' }
+    '1D': { interval: '15min', outputsize: 96 },      // 96 x 15min = 24 hours
+    '1W': { interval: '1h', outputsize: 168 },        // 168 hours = 1 week
+    '1M': { interval: '1day', outputsize: 30 },       // 30 days
+    '1Y': { interval: '1day', outputsize: 365 },      // 365 days
+    '3Y': { interval: '1week', outputsize: 156 },     // 156 weeks = 3 years
+    '5Y': { interval: '1week', outputsize: 260 },     // 260 weeks = 5 years
+    '10Y': { interval: '1month', outputsize: 120 }    // 120 months = 10 years
 };
 
-// Asset mappings for Yahoo Finance
+// Asset symbol mappings for TwelveData
+// TwelveData uses different formats: stocks are plain symbols, crypto is BASE/QUOTE
 const ASSET_SYMBOLS = {
-    'SPY': 'SPY',
-    'QQQ': 'QQQ',
-    'AAPL': 'AAPL',
-    'TSLA': 'TSLA',
-    'MSFT': 'MSFT',
-    'GOOGL': 'GOOGL',
-    'AMZN': 'AMZN',
-    'NVDA': 'NVDA',
-    'META': 'META',
-    'BTC-USD': 'BTC-USD',
-    'ETH-USD': 'ETH-USD',
-    'SOL-USD': 'SOL-USD',
-    'GC=F': 'GC=F',
-    'SI=F': 'SI=F',
-    'CL=F': 'CL=F'
+    // Stocks & ETFs (direct symbols)
+    'SPY': { symbol: 'SPY', type: 'stock' },
+    'QQQ': { symbol: 'QQQ', type: 'stock' },
+    'AAPL': { symbol: 'AAPL', type: 'stock' },
+    'TSLA': { symbol: 'TSLA', type: 'stock' },
+    'MSFT': { symbol: 'MSFT', type: 'stock' },
+    'GOOGL': { symbol: 'GOOGL', type: 'stock' },
+    'AMZN': { symbol: 'AMZN', type: 'stock' },
+    'NVDA': { symbol: 'NVDA', type: 'stock' },
+    'META': { symbol: 'META', type: 'stock' },
+    // Crypto (BASE/QUOTE format)
+    'BTC-USD': { symbol: 'BTC/USD', type: 'crypto' },
+    'ETH-USD': { symbol: 'ETH/USD', type: 'crypto' },
+    'SOL-USD': { symbol: 'SOL/USD', type: 'crypto' },
+    // Commodities (futures symbols)
+    'GC=F': { symbol: 'XAU/USD', type: 'commodity' },  // Gold
+    'SI=F': { symbol: 'XAG/USD', type: 'commodity' },  // Silver
+    'CL=F': { symbol: 'XBR/USD', type: 'commodity' }   // Crude Oil (Brent)
 };
 
 class PriceService {
@@ -38,42 +45,40 @@ class PriceService {
      * Get historical prices for an asset
      */
     static async getHistoricalPrices(symbol, window = '1W') {
-        const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
-        const yahooSymbol = ASSET_SYMBOLS[symbol] || symbol;
-
-        try {
-            const data = await this.fetchYahooData(yahooSymbol, config.range, config.interval);
-            return data;
-        } catch (error) {
-            console.error('Yahoo Finance error:', error.message);
-            // Return mock data as fallback
-            return this.generateMockData(symbol, window);
+        if (!TWELVE_DATA_API_KEY) {
+            throw new Error('TwelveData API key not configured');
         }
+
+        const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
+        const assetConfig = ASSET_SYMBOLS[symbol];
+
+        if (!assetConfig) {
+            throw new Error(`Unknown symbol: ${symbol}`);
+        }
+
+        const data = await this.fetchTwelveData(assetConfig.symbol, config.interval, config.outputsize);
+        return data;
     }
 
     /**
-     * Fetch data from Yahoo Finance with retry and timeout
+     * Fetch data from TwelveData API
      */
-    static async fetchYahooData(symbol, range, interval, retries = 3) {
-        const endpoints = [
-            `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`,
-            `https://query2.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(symbol)}?range=${range}&interval=${interval}`
-        ];
+    static async fetchTwelveData(symbol, interval, outputsize, retries = 3) {
+        const url = `${TWELVE_DATA_BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVE_DATA_API_KEY}`;
 
         let lastError = null;
 
         for (let attempt = 0; attempt < retries; attempt++) {
-            for (const baseUrl of endpoints) {
-                try {
-                    const result = await this.fetchWithTimeout(baseUrl, 10000);
-                    return result;
-                } catch (error) {
-                    lastError = error;
-                    console.log(`Attempt ${attempt + 1} failed for ${symbol}: ${error.message}`);
-                    // Wait before retry (exponential backoff)
-                    if (attempt < retries - 1) {
-                        await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
-                    }
+            try {
+                const result = await this.fetchWithTimeout(url, 15000);
+                return result;
+            } catch (error) {
+                lastError = error;
+                console.error(`TwelveData attempt ${attempt + 1} failed for ${symbol}: ${error.message}`);
+
+                // Wait before retry (exponential backoff)
+                if (attempt < retries - 1) {
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
                 }
             }
         }
@@ -84,21 +89,17 @@ class PriceService {
     /**
      * Fetch with timeout
      */
-    static fetchWithTimeout(url, timeout = 10000) {
+    static fetchWithTimeout(url, timeout = 15000) {
         return new Promise((resolve, reject) => {
             const req = https.get(url, {
                 headers: {
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-                    'Accept': 'application/json',
-                    'Accept-Language': 'en-US,en;q=0.9'
+                    'User-Agent': 'InsiderTrading/1.0',
+                    'Accept': 'application/json'
                 },
                 timeout
             }, (res) => {
-                // Handle redirects
-                if (res.statusCode >= 300 && res.statusCode < 400 && res.headers.location) {
-                    this.fetchWithTimeout(res.headers.location, timeout)
-                        .then(resolve)
-                        .catch(reject);
+                if (res.statusCode === 429) {
+                    reject(new Error('Rate limit exceeded - please try again later'));
                     return;
                 }
 
@@ -113,36 +114,34 @@ class PriceService {
                     try {
                         const json = JSON.parse(data);
 
-                        if (json.chart?.error) {
-                            reject(new Error(json.chart.error.description || 'Chart error'));
+                        // Check for API errors
+                        if (json.status === 'error') {
+                            reject(new Error(json.message || 'API error'));
                             return;
                         }
 
-                        const result = json.chart?.result?.[0];
-                        if (!result) {
-                            reject(new Error('No data returned'));
+                        // Validate response structure
+                        if (!json.values || !Array.isArray(json.values)) {
+                            reject(new Error('Invalid response format'));
                             return;
                         }
 
-                        const timestamps = result.timestamp || [];
-                        const quote = result.indicators?.quote?.[0] || {};
-
-                        // Filter out invalid candles (null/0 values)
-                        const candles = timestamps.map((time, i) => ({
-                            time,
-                            open: quote.open?.[i],
-                            high: quote.high?.[i],
-                            low: quote.low?.[i],
-                            close: quote.close?.[i],
-                            volume: quote.volume?.[i] || 0
+                        // Transform TwelveData response to our format
+                        // TwelveData returns newest first, we want oldest first
+                        const candles = json.values.reverse().map(item => ({
+                            time: this.parseDateTime(item.datetime),
+                            open: parseFloat(item.open),
+                            high: parseFloat(item.high),
+                            low: parseFloat(item.low),
+                            close: parseFloat(item.close),
+                            volume: item.volume ? parseInt(item.volume) : 0
                         })).filter(c =>
-                            c.open != null && c.close != null &&
-                            c.open > 0 && c.close > 0 &&
-                            !isNaN(c.open) && !isNaN(c.close)
+                            !isNaN(c.open) && !isNaN(c.close) &&
+                            c.open > 0 && c.close > 0
                         );
 
-                        if (candles.length < 5) {
-                            reject(new Error('Insufficient valid data points'));
+                        if (candles.length < 2) {
+                            reject(new Error('Insufficient data points'));
                             return;
                         }
 
@@ -151,13 +150,13 @@ class PriceService {
                         const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
 
                         resolve({
-                            symbol: result.meta?.symbol || url.split('/').pop().split('?')[0],
+                            symbol: json.meta?.symbol || url.split('symbol=')[1]?.split('&')[0],
                             candles,
                             lastPrice,
                             priceChange,
-                            currency: result.meta?.currency || 'USD',
-                            exchange: result.meta?.exchangeName || '',
-                            source: 'yahoo'
+                            currency: json.meta?.currency || 'USD',
+                            exchange: json.meta?.exchange || '',
+                            source: 'twelvedata'
                         });
                     } catch (e) {
                         reject(new Error(`Parse error: ${e.message}`));
@@ -174,125 +173,222 @@ class PriceService {
     }
 
     /**
+     * Parse TwelveData datetime string to Unix timestamp
+     */
+    static parseDateTime(dateStr) {
+        // TwelveData returns dates like "2024-01-15 14:30:00" or "2024-01-15"
+        const date = new Date(dateStr.replace(' ', 'T') + (dateStr.includes(' ') ? '' : 'T00:00:00'));
+        return Math.floor(date.getTime() / 1000);
+    }
+
+    /**
      * Get current quote for an asset
      */
     static async getQuote(symbol) {
-        const yahooSymbol = ASSET_SYMBOLS[symbol] || symbol;
-
-        try {
-            const data = await this.fetchYahooData(yahooSymbol, '1d', '1m');
-            return {
-                symbol,
-                price: data.lastPrice,
-                change: data.priceChange,
-                timestamp: Date.now()
-            };
-        } catch (error) {
-            // Return mock quote
-            return this.generateMockQuote(symbol);
+        if (!TWELVE_DATA_API_KEY) {
+            throw new Error('TwelveData API key not configured');
         }
-    }
 
-    /**
-     * Generate mock data as fallback
-     */
-    static generateMockData(symbol, window) {
-        const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
+        const assetConfig = ASSET_SYMBOLS[symbol];
+        if (!assetConfig) {
+            throw new Error(`Unknown symbol: ${symbol}`);
+        }
 
-        // Determine number of candles and time span
-        const candleCounts = {
-            '1D': 96,    // 15min intervals
-            '1W': 168,   // hourly
-            '1M': 180,   // daily
-            '1Y': 365,   // daily
-            '3Y': 156,   // weekly
-            '5Y': 260,   // weekly
-            '10Y': 120   // monthly
-        };
+        const url = `${TWELVE_DATA_BASE_URL}/quote?symbol=${encodeURIComponent(assetConfig.symbol)}&apikey=${TWELVE_DATA_API_KEY}`;
 
-        const numCandles = candleCounts[window] || 100;
+        return new Promise((resolve, reject) => {
+            const req = https.get(url, {
+                headers: {
+                    'User-Agent': 'InsiderTrading/1.0',
+                    'Accept': 'application/json'
+                },
+                timeout: 10000
+            }, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
 
-        // Base prices for different assets
-        const basePrices = {
-            'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
-            'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
-            'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-            'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
-        };
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
 
-        let price = basePrices[symbol] || 100;
-        const isCrypto = symbol.includes('BTC') || symbol.includes('ETH') || symbol.includes('SOL');
-        const volatility = isCrypto ? 0.03 : 0.012;
+                        if (json.status === 'error') {
+                            reject(new Error(json.message || 'API error'));
+                            return;
+                        }
 
-        const candles = [];
-        const now = Date.now();
-
-        // Calculate time interval in ms
-        const intervalMs = {
-            '15m': 15 * 60 * 1000,
-            '1h': 60 * 60 * 1000,
-            '1d': 24 * 60 * 60 * 1000,
-            '1wk': 7 * 24 * 60 * 60 * 1000,
-            '1mo': 30 * 24 * 60 * 60 * 1000
-        };
-
-        const interval = intervalMs[config.interval] || intervalMs['1d'];
-
-        for (let i = numCandles - 1; i >= 0; i--) {
-            const time = Math.floor((now - (i * interval)) / 1000);
-            const change = (Math.random() - 0.48) * volatility;
-            const open = price;
-            price = price * (1 + change);
-            const close = price;
-            const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
-            const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
-
-            candles.push({
-                time,
-                open: parseFloat(open.toFixed(2)),
-                high: parseFloat(high.toFixed(2)),
-                low: parseFloat(low.toFixed(2)),
-                close: parseFloat(close.toFixed(2)),
-                volume: Math.floor(Math.random() * 10000000)
+                        resolve({
+                            symbol,
+                            price: parseFloat(json.close),
+                            change: parseFloat(json.percent_change) || 0,
+                            timestamp: Date.now()
+                        });
+                    } catch (e) {
+                        reject(new Error(`Parse error: ${e.message}`));
+                    }
+                });
             });
-        }
 
-        const lastPrice = candles[candles.length - 1].close;
-        const firstPrice = candles[0].open;
-        const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
-
-        return {
-            symbol,
-            candles,
-            lastPrice,
-            priceChange,
-            currency: 'USD',
-            exchange: 'Mock'
-        };
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+        });
     }
 
     /**
-     * Generate mock quote
+     * Get real-time price for a token symbol (for Token.js integration)
      */
-    static generateMockQuote(symbol) {
-        const basePrices = {
-            'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
-            'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
-            'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-            'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
+    static async getTokenPrice(symbol) {
+        // Map token symbols to TwelveData format
+        const tokenMap = {
+            'ETH': 'ETH/USD',
+            'BTC': 'BTC/USD',
+            'SOL': 'SOL/USD',
+            'MATIC': 'MATIC/USD',
+            'LINK': 'LINK/USD',
+            'UNI': 'UNI/USD',
+            'AAVE': 'AAVE/USD',
+            'ARB': 'ARB/USD',
+            'OP': 'OP/USD',
+            'BNB': 'BNB/USD',
+            'CRV': 'CRV/USD'
         };
 
-        const basePrice = basePrices[symbol] || 100;
-        const variation = (Math.random() - 0.5) * 0.02;
-        const price = basePrice * (1 + variation);
-        const change = variation * 100;
+        const twelveDataSymbol = tokenMap[symbol];
+        if (!twelveDataSymbol) {
+            return null;
+        }
 
-        return {
-            symbol,
-            price: parseFloat(price.toFixed(2)),
-            change: parseFloat(change.toFixed(2)),
-            timestamp: Date.now()
+        if (!TWELVE_DATA_API_KEY) {
+            throw new Error('TwelveData API key not configured');
+        }
+
+        const url = `${TWELVE_DATA_BASE_URL}/price?symbol=${encodeURIComponent(twelveDataSymbol)}&apikey=${TWELVE_DATA_API_KEY}`;
+
+        return new Promise((resolve, reject) => {
+            const req = https.get(url, {
+                headers: {
+                    'User-Agent': 'InsiderTrading/1.0',
+                    'Accept': 'application/json'
+                },
+                timeout: 10000
+            }, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+
+                        if (json.status === 'error') {
+                            reject(new Error(json.message || 'API error'));
+                            return;
+                        }
+
+                        resolve({
+                            symbol,
+                            price: parseFloat(json.price),
+                            timestamp: Date.now()
+                        });
+                    } catch (e) {
+                        reject(new Error(`Parse error: ${e.message}`));
+                    }
+                });
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+        });
+    }
+
+    /**
+     * Batch fetch prices for multiple tokens
+     */
+    static async getBatchTokenPrices(symbols) {
+        const results = {};
+
+        // TwelveData supports batch requests - use comma-separated symbols
+        const tokenMap = {
+            'ETH': 'ETH/USD',
+            'BTC': 'BTC/USD',
+            'SOL': 'SOL/USD',
+            'MATIC': 'MATIC/USD',
+            'LINK': 'LINK/USD',
+            'UNI': 'UNI/USD',
+            'AAVE': 'AAVE/USD',
+            'ARB': 'ARB/USD',
+            'OP': 'OP/USD',
+            'BNB': 'BNB/USD',
+            'CRV': 'CRV/USD'
         };
+
+        const validSymbols = symbols.filter(s => tokenMap[s]);
+        if (validSymbols.length === 0) {
+            return results;
+        }
+
+        const twelveDataSymbols = validSymbols.map(s => tokenMap[s]).join(',');
+
+        if (!TWELVE_DATA_API_KEY) {
+            throw new Error('TwelveData API key not configured');
+        }
+
+        const url = `${TWELVE_DATA_BASE_URL}/price?symbol=${encodeURIComponent(twelveDataSymbols)}&apikey=${TWELVE_DATA_API_KEY}`;
+
+        return new Promise((resolve, reject) => {
+            const req = https.get(url, {
+                headers: {
+                    'User-Agent': 'InsiderTrading/1.0',
+                    'Accept': 'application/json'
+                },
+                timeout: 15000
+            }, (res) => {
+                if (res.statusCode !== 200) {
+                    reject(new Error(`HTTP ${res.statusCode}`));
+                    return;
+                }
+
+                let data = '';
+                res.on('data', chunk => data += chunk);
+                res.on('end', () => {
+                    try {
+                        const json = JSON.parse(data);
+
+                        // For batch requests, response is keyed by symbol
+                        for (const symbol of validSymbols) {
+                            const twelveSymbol = tokenMap[symbol];
+                            const priceData = json[twelveSymbol];
+
+                            if (priceData && priceData.price) {
+                                results[symbol] = parseFloat(priceData.price);
+                            }
+                        }
+
+                        resolve(results);
+                    } catch (e) {
+                        reject(new Error(`Parse error: ${e.message}`));
+                    }
+                });
+            });
+
+            req.on('error', reject);
+            req.on('timeout', () => {
+                req.destroy();
+                reject(new Error('Request timeout'));
+            });
+        });
     }
 }
 

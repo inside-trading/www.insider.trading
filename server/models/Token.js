@@ -1,5 +1,8 @@
-// Token data model with simulated price updates
+// Token data model with real-time price updates from TwelveData API
 
+const PriceService = require('../services/PriceService');
+
+// Token metadata (prices are fetched from API)
 const tokens = [
   {
     id: 'ethereum',
@@ -8,11 +11,12 @@ const tokens = [
     icon: '/assets/tokens/eth.svg',
     decimals: 18,
     address: '0xEeeeeEeeeEeEeeEeEeEeeEEEeeeeEeeeeeeeEEeE',
-    price: 2450.00,
-    priceChange24h: 3.24,
-    volume24h: 15420000000,
-    marketCap: 294000000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base'],
+    lastUpdated: null
   },
   {
     id: 'usd-coin',
@@ -21,11 +25,12 @@ const tokens = [
     icon: '/assets/tokens/usdc.svg',
     decimals: 6,
     address: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
-    price: 1.00,
-    priceChange24h: 0.01,
-    volume24h: 8540000000,
-    marketCap: 42000000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base']
+    price: 1.00,  // Stablecoin - pegged to USD
+    priceChange24h: 0,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'base'],
+    lastUpdated: null
   },
   {
     id: 'tether',
@@ -34,11 +39,12 @@ const tokens = [
     icon: '/assets/tokens/usdt.svg',
     decimals: 6,
     address: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
-    price: 1.00,
-    priceChange24h: -0.02,
-    volume24h: 52000000000,
-    marketCap: 95000000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'bnb']
+    price: 1.00,  // Stablecoin - pegged to USD
+    priceChange24h: 0,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon', 'bnb'],
+    lastUpdated: null
   },
   {
     id: 'bitcoin',
@@ -47,11 +53,12 @@ const tokens = [
     icon: '/assets/tokens/btc.svg',
     decimals: 8,
     address: '0x2260FAC5E5542a773Aa44fBCfeDf7C193bc2C599', // WBTC
-    price: 43250.00,
-    priceChange24h: 2.15,
-    volume24h: 28000000000,
-    marketCap: 847000000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon'],
+    lastUpdated: null
   },
   {
     id: 'bnb',
@@ -60,11 +67,12 @@ const tokens = [
     icon: '/assets/tokens/bnb.svg',
     decimals: 18,
     address: '0xB8c77482e45F1F44dE1745F52C74426C631bDD52',
-    price: 312.50,
-    priceChange24h: -1.32,
-    volume24h: 1200000000,
-    marketCap: 48000000000,
-    networks: ['ethereum', 'bnb']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'bnb'],
+    lastUpdated: null
   },
   {
     id: 'arbitrum',
@@ -73,11 +81,12 @@ const tokens = [
     icon: '/assets/tokens/arb.svg',
     decimals: 18,
     address: '0xB50721BCf8d664c30412Cfbc6cf7a15145234ad1',
-    price: 1.85,
-    priceChange24h: 5.67,
-    volume24h: 890000000,
-    marketCap: 2400000000,
-    networks: ['ethereum', 'arbitrum']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum'],
+    lastUpdated: null
   },
   {
     id: 'optimism',
@@ -86,11 +95,12 @@ const tokens = [
     icon: '/assets/tokens/op.svg',
     decimals: 18,
     address: '0x4200000000000000000000000000000000000042',
-    price: 3.42,
-    priceChange24h: 4.21,
-    volume24h: 456000000,
-    marketCap: 3600000000,
-    networks: ['ethereum', 'optimism']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'optimism'],
+    lastUpdated: null
   },
   {
     id: 'polygon',
@@ -99,11 +109,12 @@ const tokens = [
     icon: '/assets/tokens/matic.svg',
     decimals: 18,
     address: '0x7D1AfA7B718fb893dB30A3aBc0Cfc608AaCfeBB0',
-    price: 0.92,
-    priceChange24h: -2.15,
-    volume24h: 567000000,
-    marketCap: 8500000000,
-    networks: ['ethereum', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'polygon'],
+    lastUpdated: null
   },
   {
     id: 'chainlink',
@@ -112,11 +123,12 @@ const tokens = [
     icon: '/assets/tokens/link.svg',
     decimals: 18,
     address: '0x514910771AF9Ca656af840dff83E8264EcF986CA',
-    price: 14.85,
-    priceChange24h: 1.89,
-    volume24h: 678000000,
-    marketCap: 8700000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon'],
+    lastUpdated: null
   },
   {
     id: 'uniswap',
@@ -125,11 +137,12 @@ const tokens = [
     icon: '/assets/tokens/uni.svg',
     decimals: 18,
     address: '0x1f9840a85d5aF5bf1D1762F925BDADdC4201F984',
-    price: 7.23,
-    priceChange24h: 2.45,
-    volume24h: 234000000,
-    marketCap: 5400000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon'],
+    lastUpdated: null
   },
   {
     id: 'aave',
@@ -138,11 +151,12 @@ const tokens = [
     icon: '/assets/tokens/aave.svg',
     decimals: 18,
     address: '0x7Fc66500c84A76Ad7e9c93437bFc5Ac33E2DDaE9',
-    price: 98.50,
-    priceChange24h: 3.78,
-    volume24h: 178000000,
-    marketCap: 1450000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon'],
+    lastUpdated: null
   },
   {
     id: 'curve',
@@ -151,34 +165,77 @@ const tokens = [
     icon: '/assets/tokens/crv.svg',
     decimals: 18,
     address: '0xD533a949740bb3306d119CC777fa900bA034cd52',
-    price: 0.58,
-    priceChange24h: -0.85,
-    volume24h: 89000000,
-    marketCap: 520000000,
-    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon']
+    price: null,
+    priceChange24h: null,
+    volume24h: null,
+    marketCap: null,
+    networks: ['ethereum', 'arbitrum', 'optimism', 'polygon'],
+    lastUpdated: null
   }
 ];
 
-// Simulate price fluctuations
-function updatePrices() {
-  tokens.forEach(token => {
-    // Skip stablecoins
-    if (['USDC', 'USDT'].includes(token.symbol)) {
-      token.price = 1 + (Math.random() - 0.5) * 0.002; // ±0.1%
-      return;
+// Cache for prices (to avoid hitting rate limits)
+let priceCache = {};
+let lastPriceUpdate = 0;
+const PRICE_CACHE_TTL = 30000; // 30 seconds cache
+
+// Fetch real prices from TwelveData API
+async function updatePrices() {
+  const now = Date.now();
+
+  // Skip if cache is still fresh
+  if (now - lastPriceUpdate < PRICE_CACHE_TTL) {
+    return;
+  }
+
+  try {
+    // Get symbols that need price updates (exclude stablecoins)
+    const symbolsToFetch = tokens
+      .filter(t => !['USDC', 'USDT'].includes(t.symbol))
+      .map(t => t.symbol);
+
+    const prices = await PriceService.getBatchTokenPrices(symbolsToFetch);
+
+    // Update token prices
+    for (const token of tokens) {
+      if (['USDC', 'USDT'].includes(token.symbol)) {
+        // Keep stablecoins at $1
+        token.price = 1.00;
+        token.priceChange24h = 0;
+        continue;
+      }
+
+      if (prices[token.symbol]) {
+        const oldPrice = priceCache[token.symbol];
+        const newPrice = prices[token.symbol];
+
+        token.price = newPrice;
+        token.lastUpdated = now;
+
+        // Calculate price change if we have old data
+        if (oldPrice) {
+          const change = ((newPrice - oldPrice) / oldPrice) * 100;
+          token.priceChange24h = parseFloat(change.toFixed(2));
+        }
+
+        priceCache[token.symbol] = newPrice;
+      }
     }
 
-    // Random price change between -0.5% and +0.5%
-    const change = (Math.random() - 0.5) * 0.01;
-    token.price = token.price * (1 + change);
-
-    // Update 24h change slightly
-    token.priceChange24h += (Math.random() - 0.5) * 0.1;
-  });
+    lastPriceUpdate = now;
+    console.log(`[Token] Updated ${Object.keys(prices).length} token prices from TwelveData`);
+  } catch (error) {
+    console.error('[Token] Failed to update prices:', error.message);
+  }
 }
 
-// Start price updates
-setInterval(updatePrices, 5000);
+// Initial price fetch
+updatePrices().catch(console.error);
+
+// Update prices every 30 seconds
+setInterval(() => {
+  updatePrices().catch(console.error);
+}, PRICE_CACHE_TTL);
 
 module.exports = {
   tokens,
@@ -221,5 +278,12 @@ module.exports = {
       };
       return acc;
     }, {});
+  },
+
+  // Force refresh prices (called by API endpoint)
+  async refreshPrices() {
+    lastPriceUpdate = 0; // Reset cache
+    await updatePrices();
+    return this.getPrices();
   }
 };

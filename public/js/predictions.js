@@ -337,81 +337,44 @@ async function loadChartData() {
         setupPredictionCanvas();
     } catch (error) {
         console.error('Failed to load chart data:', error);
-        // Use mock data as fallback
-        generateMockData();
-        updateAssetInfo();
-        renderChart();
-        setupPredictionCanvas();
+        showChartError(error.message || 'Failed to load price data');
     }
 
     showLoading(false);
 }
 
 async function fetchPriceData(symbol, window) {
-    try {
-        const response = await fetch(`${API_BASE}/prices/${symbol}?window=${window}`);
-        const data = await response.json();
+    const response = await fetch(`${API_BASE}/prices/${symbol}?window=${window}`);
+    const data = await response.json();
 
-        if (data.success) {
-            return data.data;
-        }
-        throw new Error(data.error);
-    } catch (error) {
-        console.error('API Error:', error);
-        // Return mock data
-        return generateMockData();
+    if (data.success) {
+        return data.data;
     }
+
+    throw new Error(data.error || 'Failed to fetch price data');
 }
 
-function generateMockData() {
-    const config = WINDOWS[state.selectedWindow];
-    const numCandles = Math.min(config.historicalDays, 200);
-    const candles = [];
+function showChartError(message) {
+    const chartArea = elements.chartArea;
+    if (!chartArea) return;
 
-    // Base prices for different assets
-    const basePrices = {
-        'SPY': 450, 'QQQ': 380, 'AAPL': 175, 'TSLA': 250,
-        'MSFT': 380, 'GOOGL': 140, 'AMZN': 175, 'NVDA': 480,
-        'META': 350, 'BTC-USD': 43000, 'ETH-USD': 2400,
-        'SOL-USD': 100, 'GC=F': 2000, 'SI=F': 24, 'CL=F': 75
-    };
-
-    let price = basePrices[state.selectedAsset] || 100;
-    const volatility = state.selectedAsset.includes('BTC') || state.selectedAsset.includes('ETH') ? 0.03 : 0.015;
-
-    const now = new Date();
-    const msPerCandle = (config.historicalDays * 24 * 60 * 60 * 1000) / numCandles;
-
-    for (let i = numCandles - 1; i >= 0; i--) {
-        const time = new Date(now.getTime() - (i * msPerCandle));
-        const change = (Math.random() - 0.48) * volatility;
-        const open = price;
-        price = price * (1 + change);
-        const close = price;
-        const high = Math.max(open, close) * (1 + Math.random() * volatility * 0.5);
-        const low = Math.min(open, close) * (1 - Math.random() * volatility * 0.5);
-
-        candles.push({
-            time: Math.floor(time.getTime() / 1000),
-            open: parseFloat(open.toFixed(2)),
-            high: parseFloat(high.toFixed(2)),
-            low: parseFloat(low.toFixed(2)),
-            close: parseFloat(close.toFixed(2))
-        });
+    // Clear existing chart
+    if (state.chart) {
+        state.chart.remove();
+        state.chart = null;
     }
 
-    state.chartData = candles;
-    state.lastPrice = candles[candles.length - 1].close;
-
-    // Calculate price change
-    const firstPrice = candles[0].open;
-    state.priceChange = ((state.lastPrice - firstPrice) / firstPrice) * 100;
-
-    return {
-        candles,
-        lastPrice: state.lastPrice,
-        priceChange: state.priceChange
-    };
+    chartArea.innerHTML = `
+        <div class="chart-error">
+            <svg viewBox="0 0 24 24" fill="none" width="48" height="48">
+                <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2" opacity="0.3"/>
+                <path d="M12 8V12M12 16H12.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+            </svg>
+            <p class="chart-error-title">Unable to load chart</p>
+            <p class="chart-error-message">${message}</p>
+            <button class="chart-error-retry" onclick="loadChartData()">Try Again</button>
+        </div>
+    `;
 }
 
 function renderChart() {
