@@ -1,43 +1,63 @@
-// Price Service - Fetches historical price data from TwelveData API
+// Price Service - Fetches historical price data
+// Uses Twelve Data API for stocks, crypto, and commodities
 
 const https = require('https');
 
-// TwelveData API configuration
-const TWELVE_DATA_API_KEY = process.env.TWELVE_DATA_API_KEY;
-const TWELVE_DATA_BASE_URL = 'https://api.twelvedata.com';
+// Twelve Data API configuration
+const TWELVE_DATA_BASE_URL = 'api.twelvedata.com';
+const API_KEY = process.env.TWELVE_DATA_API_KEY;
 
-// Window configurations for TwelveData
+// Window configurations for Twelve Data
+// interval options: 1min, 5min, 15min, 30min, 45min, 1h, 2h, 4h, 1day, 1week, 1month
+// outputsize must match frontend historicalDays expectations:
+// 1D: 30 days * 24 hours * 4 (15min) = 2880
+// 1W: 90 days * 24 hours = 2160
+// 1M: 180 days
+// 1Y: 730 days
+// 3Y: 1825 days / 7 = 261 weeks
+// 5Y: 2555 days / 7 = 365 weeks
+// 10Y: 4380 days / 30 = 146 months
 const WINDOW_CONFIG = {
-    '1D': { interval: '15min', outputsize: 96 },      // 96 x 15min = 24 hours
-    '1W': { interval: '1h', outputsize: 168 },        // 168 hours = 1 week
-    '1M': { interval: '1day', outputsize: 30 },       // 30 days
-    '1Y': { interval: '1day', outputsize: 365 },      // 365 days
-    '3Y': { interval: '1week', outputsize: 156 },     // 156 weeks = 3 years
-    '5Y': { interval: '1week', outputsize: 260 },     // 260 weeks = 5 years
-    '10Y': { interval: '1month', outputsize: 120 }    // 120 months = 10 years
+    '1D': { interval: '15min', outputsize: 2880 },
+    '1W': { interval: '1h', outputsize: 2160 },
+    '1M': { interval: '1day', outputsize: 180 },
+    '1Y': { interval: '1day', outputsize: 730 },
+    '3Y': { interval: '1week', outputsize: 261 },
+    '5Y': { interval: '1week', outputsize: 365 },
+    '10Y': { interval: '1month', outputsize: 146 }
 };
 
-// Asset symbol mappings for TwelveData
-// TwelveData uses different formats: stocks are plain symbols, crypto is BASE/QUOTE
+// Asset symbol mappings for Twelve Data
+// Stocks use their ticker directly
+// Crypto uses /USD suffix
+// Commodities use forex-style symbols
 const ASSET_SYMBOLS = {
-    // Stocks & ETFs (direct symbols)
-    'SPY': { symbol: 'SPY', type: 'stock' },
-    'QQQ': { symbol: 'QQQ', type: 'stock' },
-    'AAPL': { symbol: 'AAPL', type: 'stock' },
-    'TSLA': { symbol: 'TSLA', type: 'stock' },
-    'MSFT': { symbol: 'MSFT', type: 'stock' },
-    'GOOGL': { symbol: 'GOOGL', type: 'stock' },
-    'AMZN': { symbol: 'AMZN', type: 'stock' },
-    'NVDA': { symbol: 'NVDA', type: 'stock' },
-    'META': { symbol: 'META', type: 'stock' },
-    // Crypto (BASE/QUOTE format)
-    'BTC-USD': { symbol: 'BTC/USD', type: 'crypto' },
-    'ETH-USD': { symbol: 'ETH/USD', type: 'crypto' },
-    'SOL-USD': { symbol: 'SOL/USD', type: 'crypto' },
-    // Commodities (futures symbols)
-    'GC=F': { symbol: 'XAU/USD', type: 'commodity' },  // Gold
-    'SI=F': { symbol: 'XAG/USD', type: 'commodity' },  // Silver
-    'CL=F': { symbol: 'XBR/USD', type: 'commodity' }   // Crude Oil (Brent)
+    // Stocks (ETFs and individual)
+    'SPY': 'SPY',
+    'QQQ': 'QQQ',
+    'AAPL': 'AAPL',
+    'TSLA': 'TSLA',
+    'MSFT': 'MSFT',
+    'GOOGL': 'GOOGL',
+    'AMZN': 'AMZN',
+    'NVDA': 'NVDA',
+    'META': 'META',
+    // Crypto
+    'BTC-USD': 'BTC/USD',
+    'ETH-USD': 'ETH/USD',
+    'SOL-USD': 'SOL/USD',
+    // Commodities
+    'GC=F': 'XAU/USD',   // Gold
+    'SI=F': 'XAG/USD',   // Silver
+    'CL=F': 'WTI/USD'    // Crude Oil (WTI)
+};
+
+// Asset type detection for proper API endpoint usage
+const ASSET_TYPES = {
+    'SPY': 'stock', 'QQQ': 'stock', 'AAPL': 'stock', 'TSLA': 'stock',
+    'MSFT': 'stock', 'GOOGL': 'stock', 'AMZN': 'stock', 'NVDA': 'stock', 'META': 'stock',
+    'BTC-USD': 'crypto', 'ETH-USD': 'crypto', 'SOL-USD': 'crypto',
+    'GC=F': 'commodity', 'SI=F': 'commodity', 'CL=F': 'commodity'
 };
 
 class PriceService {
@@ -45,40 +65,35 @@ class PriceService {
      * Get historical prices for an asset
      */
     static async getHistoricalPrices(symbol, window = '1W') {
-        if (!TWELVE_DATA_API_KEY) {
-            throw new Error('TwelveData API key not configured');
+        if (!API_KEY) {
+            throw new Error('TWELVE_DATA_API_KEY is not configured');
         }
 
         const config = WINDOW_CONFIG[window] || WINDOW_CONFIG['1W'];
-        const assetConfig = ASSET_SYMBOLS[symbol];
+        const twelveDataSymbol = ASSET_SYMBOLS[symbol] || symbol;
 
-        if (!assetConfig) {
-            throw new Error(`Unknown symbol: ${symbol}`);
-        }
-
-        const data = await this.fetchTwelveData(assetConfig.symbol, config.interval, config.outputsize);
+        const data = await this.fetchTwelveData(symbol, twelveDataSymbol, config.interval, config.outputsize);
         return data;
     }
 
     /**
-     * Fetch data from TwelveData API
+     * Fetch data from Twelve Data API with retry logic
      */
-    static async fetchTwelveData(symbol, interval, outputsize, retries = 3) {
-        const url = `${TWELVE_DATA_BASE_URL}/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${TWELVE_DATA_API_KEY}`;
-
+    static async fetchTwelveData(originalSymbol, twelveDataSymbol, interval, outputsize, retries = 3) {
         let lastError = null;
 
         for (let attempt = 0; attempt < retries; attempt++) {
             try {
-                const result = await this.fetchWithTimeout(url, 15000);
+                const result = await this.fetchWithTimeout(twelveDataSymbol, interval, outputsize);
+                // Map back to original symbol for consistency
+                result.symbol = originalSymbol;
                 return result;
             } catch (error) {
                 lastError = error;
-                console.error(`TwelveData attempt ${attempt + 1} failed for ${symbol}: ${error.message}`);
-
+                console.log(`Attempt ${attempt + 1} failed for ${originalSymbol}: ${error.message}`);
                 // Wait before retry (exponential backoff)
                 if (attempt < retries - 1) {
-                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 1000));
+                    await new Promise(r => setTimeout(r, Math.pow(2, attempt) * 500));
                 }
             }
         }
@@ -87,22 +102,23 @@ class PriceService {
     }
 
     /**
-     * Fetch with timeout
+     * Fetch time series data with timeout
      */
-    static fetchWithTimeout(url, timeout = 15000) {
+    static fetchWithTimeout(symbol, interval, outputsize, timeout = 15000) {
         return new Promise((resolve, reject) => {
-            const req = https.get(url, {
+            const path = `/time_series?symbol=${encodeURIComponent(symbol)}&interval=${interval}&outputsize=${outputsize}&apikey=${API_KEY}`;
+
+            const options = {
+                hostname: TWELVE_DATA_BASE_URL,
+                path: path,
+                method: 'GET',
                 headers: {
-                    'User-Agent': 'InsiderTrading/1.0',
                     'Accept': 'application/json'
                 },
                 timeout
-            }, (res) => {
-                if (res.statusCode === 429) {
-                    reject(new Error('Rate limit exceeded - please try again later'));
-                    return;
-                }
+            };
 
+            const req = https.request(options, (res) => {
                 if (res.statusCode !== 200) {
                     reject(new Error(`HTTP ${res.statusCode}`));
                     return;
@@ -120,28 +136,29 @@ class PriceService {
                             return;
                         }
 
-                        // Validate response structure
-                        if (!json.values || !Array.isArray(json.values)) {
-                            reject(new Error('Invalid response format'));
+                        if (!json.values || json.values.length === 0) {
+                            reject(new Error('No data returned'));
                             return;
                         }
 
-                        // Transform TwelveData response to our format
-                        // TwelveData returns newest first, we want oldest first
-                        const candles = json.values.reverse().map(item => ({
-                            time: this.parseDateTime(item.datetime),
-                            open: parseFloat(item.open),
-                            high: parseFloat(item.high),
-                            low: parseFloat(item.low),
-                            close: parseFloat(item.close),
-                            volume: item.volume ? parseInt(item.volume) : 0
+                        // Twelve Data returns newest first, we need oldest first
+                        const values = json.values.reverse();
+
+                        // Convert to candle format
+                        const candles = values.map(v => ({
+                            time: Math.floor(new Date(v.datetime).getTime() / 1000),
+                            open: parseFloat(v.open),
+                            high: parseFloat(v.high),
+                            low: parseFloat(v.low),
+                            close: parseFloat(v.close),
+                            volume: parseInt(v.volume) || 0
                         })).filter(c =>
                             !isNaN(c.open) && !isNaN(c.close) &&
                             c.open > 0 && c.close > 0
                         );
 
-                        if (candles.length < 2) {
-                            reject(new Error('Insufficient data points'));
+                        if (candles.length < 5) {
+                            reject(new Error('Insufficient valid data points'));
                             return;
                         }
 
@@ -150,7 +167,7 @@ class PriceService {
                         const priceChange = ((lastPrice - firstPrice) / firstPrice) * 100;
 
                         resolve({
-                            symbol: json.meta?.symbol || url.split('symbol=')[1]?.split('&')[0],
+                            symbol: json.meta?.symbol || symbol,
                             candles,
                             lastPrice,
                             priceChange,
@@ -169,41 +186,48 @@ class PriceService {
                 req.destroy();
                 reject(new Error('Request timeout'));
             });
-        });
-    }
 
-    /**
-     * Parse TwelveData datetime string to Unix timestamp
-     */
-    static parseDateTime(dateStr) {
-        // TwelveData returns dates like "2024-01-15 14:30:00" or "2024-01-15"
-        const date = new Date(dateStr.replace(' ', 'T') + (dateStr.includes(' ') ? '' : 'T00:00:00'));
-        return Math.floor(date.getTime() / 1000);
+            req.end();
+        });
     }
 
     /**
      * Get current quote for an asset
      */
     static async getQuote(symbol) {
-        if (!TWELVE_DATA_API_KEY) {
-            throw new Error('TwelveData API key not configured');
+        if (!API_KEY) {
+            throw new Error('TWELVE_DATA_API_KEY is not configured');
         }
 
-        const assetConfig = ASSET_SYMBOLS[symbol];
-        if (!assetConfig) {
-            throw new Error(`Unknown symbol: ${symbol}`);
-        }
+        const twelveDataSymbol = ASSET_SYMBOLS[symbol] || symbol;
+        const data = await this.fetchQuote(twelveDataSymbol);
 
-        const url = `${TWELVE_DATA_BASE_URL}/quote?symbol=${encodeURIComponent(assetConfig.symbol)}&apikey=${TWELVE_DATA_API_KEY}`;
+        return {
+            symbol,
+            price: data.price,
+            change: data.change,
+            timestamp: Date.now()
+        };
+    }
 
+    /**
+     * Fetch real-time quote from Twelve Data
+     */
+    static fetchQuote(symbol, timeout = 10000) {
         return new Promise((resolve, reject) => {
-            const req = https.get(url, {
+            const path = `/quote?symbol=${encodeURIComponent(symbol)}&apikey=${API_KEY}`;
+
+            const options = {
+                hostname: TWELVE_DATA_BASE_URL,
+                path: path,
+                method: 'GET',
                 headers: {
-                    'User-Agent': 'InsiderTrading/1.0',
                     'Accept': 'application/json'
                 },
-                timeout: 10000
-            }, (res) => {
+                timeout
+            };
+
+            const req = https.request(options, (res) => {
                 if (res.statusCode !== 200) {
                     reject(new Error(`HTTP ${res.statusCode}`));
                     return;
@@ -220,11 +244,17 @@ class PriceService {
                             return;
                         }
 
+                        const price = parseFloat(json.close);
+                        const prevClose = parseFloat(json.previous_close);
+                        const change = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+
                         resolve({
-                            symbol,
-                            price: parseFloat(json.close),
-                            change: parseFloat(json.percent_change) || 0,
-                            timestamp: Date.now()
+                            price,
+                            change,
+                            open: parseFloat(json.open),
+                            high: parseFloat(json.high),
+                            low: parseFloat(json.low),
+                            volume: parseInt(json.volume) || 0
                         });
                     } catch (e) {
                         reject(new Error(`Parse error: ${e.message}`));
@@ -237,124 +267,36 @@ class PriceService {
                 req.destroy();
                 reject(new Error('Request timeout'));
             });
+
+            req.end();
         });
     }
 
     /**
-     * Get real-time price for a token symbol (for Token.js integration)
+     * Get multiple quotes at once (more efficient for rate limits)
      */
-    static async getTokenPrice(symbol) {
-        // Map token symbols to TwelveData format
-        const tokenMap = {
-            'ETH': 'ETH/USD',
-            'BTC': 'BTC/USD',
-            'SOL': 'SOL/USD',
-            'MATIC': 'MATIC/USD',
-            'LINK': 'LINK/USD',
-            'UNI': 'UNI/USD',
-            'AAVE': 'AAVE/USD',
-            'ARB': 'ARB/USD',
-            'OP': 'OP/USD',
-            'BNB': 'BNB/USD',
-            'CRV': 'CRV/USD'
-        };
-
-        const twelveDataSymbol = tokenMap[symbol];
-        if (!twelveDataSymbol) {
-            return null;
+    static async getMultipleQuotes(symbols) {
+        if (!API_KEY) {
+            throw new Error('TWELVE_DATA_API_KEY is not configured');
         }
 
-        if (!TWELVE_DATA_API_KEY) {
-            throw new Error('TwelveData API key not configured');
-        }
-
-        const url = `${TWELVE_DATA_BASE_URL}/price?symbol=${encodeURIComponent(twelveDataSymbol)}&apikey=${TWELVE_DATA_API_KEY}`;
+        const twelveDataSymbols = symbols.map(s => ASSET_SYMBOLS[s] || s);
+        const symbolsParam = twelveDataSymbols.join(',');
 
         return new Promise((resolve, reject) => {
-            const req = https.get(url, {
+            const path = `/quote?symbol=${encodeURIComponent(symbolsParam)}&apikey=${API_KEY}`;
+
+            const options = {
+                hostname: TWELVE_DATA_BASE_URL,
+                path: path,
+                method: 'GET',
                 headers: {
-                    'User-Agent': 'InsiderTrading/1.0',
-                    'Accept': 'application/json'
-                },
-                timeout: 10000
-            }, (res) => {
-                if (res.statusCode !== 200) {
-                    reject(new Error(`HTTP ${res.statusCode}`));
-                    return;
-                }
-
-                let data = '';
-                res.on('data', chunk => data += chunk);
-                res.on('end', () => {
-                    try {
-                        const json = JSON.parse(data);
-
-                        if (json.status === 'error') {
-                            reject(new Error(json.message || 'API error'));
-                            return;
-                        }
-
-                        resolve({
-                            symbol,
-                            price: parseFloat(json.price),
-                            timestamp: Date.now()
-                        });
-                    } catch (e) {
-                        reject(new Error(`Parse error: ${e.message}`));
-                    }
-                });
-            });
-
-            req.on('error', reject);
-            req.on('timeout', () => {
-                req.destroy();
-                reject(new Error('Request timeout'));
-            });
-        });
-    }
-
-    /**
-     * Batch fetch prices for multiple tokens
-     */
-    static async getBatchTokenPrices(symbols) {
-        const results = {};
-
-        // TwelveData supports batch requests - use comma-separated symbols
-        const tokenMap = {
-            'ETH': 'ETH/USD',
-            'BTC': 'BTC/USD',
-            'SOL': 'SOL/USD',
-            'MATIC': 'MATIC/USD',
-            'LINK': 'LINK/USD',
-            'UNI': 'UNI/USD',
-            'AAVE': 'AAVE/USD',
-            'ARB': 'ARB/USD',
-            'OP': 'OP/USD',
-            'BNB': 'BNB/USD',
-            'CRV': 'CRV/USD'
-        };
-
-        const validSymbols = symbols.filter(s => tokenMap[s]);
-        if (validSymbols.length === 0) {
-            return results;
-        }
-
-        const twelveDataSymbols = validSymbols.map(s => tokenMap[s]).join(',');
-
-        if (!TWELVE_DATA_API_KEY) {
-            throw new Error('TwelveData API key not configured');
-        }
-
-        const url = `${TWELVE_DATA_BASE_URL}/price?symbol=${encodeURIComponent(twelveDataSymbols)}&apikey=${TWELVE_DATA_API_KEY}`;
-
-        return new Promise((resolve, reject) => {
-            const req = https.get(url, {
-                headers: {
-                    'User-Agent': 'InsiderTrading/1.0',
                     'Accept': 'application/json'
                 },
                 timeout: 15000
-            }, (res) => {
+            };
+
+            const req = https.request(options, (res) => {
                 if (res.statusCode !== 200) {
                     reject(new Error(`HTTP ${res.statusCode}`));
                     return;
@@ -366,14 +308,48 @@ class PriceService {
                     try {
                         const json = JSON.parse(data);
 
-                        // For batch requests, response is keyed by symbol
-                        for (const symbol of validSymbols) {
-                            const twelveSymbol = tokenMap[symbol];
-                            const priceData = json[twelveSymbol];
+                        // Check for API error
+                        if (json.status === 'error') {
+                            reject(new Error(json.message || 'API error'));
+                            return;
+                        }
 
-                            if (priceData && priceData.price) {
-                                results[symbol] = parseFloat(priceData.price);
+                        // Handle single symbol response (not array)
+                        if (!Array.isArray(json) && json.symbol) {
+                            const price = parseFloat(json.close);
+                            const prevClose = parseFloat(json.previous_close);
+                            const change = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+                            resolve([{
+                                symbol: symbols[0],
+                                price,
+                                change,
+                                timestamp: Date.now()
+                            }]);
+                            return;
+                        }
+
+                        // Handle multiple symbols - response is keyed by symbol
+                        const results = [];
+                        for (let i = 0; i < symbols.length; i++) {
+                            const originalSymbol = symbols[i];
+                            const twelveSymbol = twelveDataSymbols[i];
+                            const quote = json[twelveSymbol];
+
+                            if (!quote || quote.status === 'error') {
+                                reject(new Error(`No data for symbol: ${originalSymbol}`));
+                                return;
                             }
+
+                            const price = parseFloat(quote.close);
+                            const prevClose = parseFloat(quote.previous_close);
+                            const change = prevClose > 0 ? ((price - prevClose) / prevClose) * 100 : 0;
+
+                            results.push({
+                                symbol: originalSymbol,
+                                price,
+                                change,
+                                timestamp: Date.now()
+                            });
                         }
 
                         resolve(results);
@@ -388,7 +364,23 @@ class PriceService {
                 req.destroy();
                 reject(new Error('Request timeout'));
             });
+
+            req.end();
         });
+    }
+
+    /**
+     * Get supported symbols list
+     */
+    static getSupportedSymbols() {
+        return Object.keys(ASSET_SYMBOLS);
+    }
+
+    /**
+     * Get asset type (stock, crypto, commodity)
+     */
+    static getAssetType(symbol) {
+        return ASSET_TYPES[symbol] || 'unknown';
     }
 }
 

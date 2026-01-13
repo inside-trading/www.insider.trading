@@ -624,46 +624,116 @@ function syncPriceRangeWithChart() {
 
 function renderUnifiedXAxis() {
     const container = elements.unifiedXAxis;
-    if (!container) return;
+    const chartArea = elements.chartArea;
+    const nowDivider = elements.nowDivider;
+    const predictionArea = elements.predictionArea;
+
+    if (!container || !chartArea || !nowDivider || !predictionArea) return;
 
     const config = WINDOWS[state.selectedWindow];
-    const totalDays = config.historicalDays + config.days;
 
-    // Generate labels for the entire timeline
-    const numLabels = 7;
-    const labels = [];
+    // Get actual pixel widths of the layout elements
+    const chartWidth = chartArea.offsetWidth;
+    const dividerWidth = nowDivider.offsetWidth;
+    const predictionWidth = predictionArea.offsetWidth;
+    const totalWidth = chartWidth + dividerWidth + predictionWidth;
 
-    for (let i = 0; i < numLabels; i++) {
-        const position = i / (numLabels - 1); // 0 to 1
-        const daysFromStart = position * totalDays;
-        const daysFromNow = daysFromStart - config.historicalDays;
+    // Calculate the pixel position of the "Now" divider center
+    const nowPosition = chartWidth + (dividerWidth / 2);
+
+    // Generate labels with pixel positions based on actual layout
+    const candidates = [];
+    const numHistoricalLabels = 5;
+    const numFutureLabels = 4;
+
+    // Historical labels (distributed across chart area)
+    for (let i = 0; i < numHistoricalLabels; i++) {
+        const ratio = i / (numHistoricalLabels - 1); // 0 to 1
+        const pixelPosition = ratio * chartWidth;
+        const daysFromNow = -config.historicalDays * (1 - ratio);
 
         const date = new Date();
         date.setDate(date.getDate() + daysFromNow);
 
         let label;
-        let isFuture = daysFromNow > 0;
-        let isNear = Math.abs(daysFromNow) < 1;
-
-        if (isNear) {
-            label = 'Today';
-        } else if (totalDays <= 30) {
+        if (config.historicalDays <= 30) {
             label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
-        } else if (totalDays <= 365) {
+        } else if (config.historicalDays <= 365) {
             label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         } else {
             label = date.getFullYear().toString();
         }
 
-        labels.push({ label, position: position * 100, isFuture, isNear });
+        candidates.push({
+            label,
+            pixelPosition,
+            isFuture: false,
+            isNear: false,
+            daysFromNow
+        });
     }
 
+    // "Today" label at the Now divider position
+    candidates.push({
+        label: 'Today',
+        pixelPosition: nowPosition,
+        isFuture: false,
+        isNear: true,
+        daysFromNow: 0
+    });
+
+    // Future labels (distributed across prediction area)
+    for (let i = 1; i <= numFutureLabels; i++) {
+        const ratio = i / numFutureLabels; // > 0 to 1
+        const pixelPosition = chartWidth + dividerWidth + (ratio * predictionWidth);
+        const daysFromNow = ratio * config.days;
+
+        const date = new Date();
+        date.setDate(date.getDate() + daysFromNow);
+
+        let label;
+        if (config.days <= 30) {
+            label = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+        } else if (config.days <= 365) {
+            label = date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+        } else {
+            label = date.getFullYear().toString();
+        }
+
+        candidates.push({
+            label,
+            pixelPosition,
+            isFuture: true,
+            isNear: false,
+            daysFromNow
+        });
+    }
+
+    // Filter out duplicate labels, keeping "Today" and evenly distributed ones
+    const labels = [];
+    const seenLabels = new Set();
+
+    for (const candidate of candidates) {
+        if (candidate.isNear) {
+            labels.push(candidate);
+            seenLabels.add(candidate.label);
+        } else if (!seenLabels.has(candidate.label)) {
+            labels.push(candidate);
+            seenLabels.add(candidate.label);
+        }
+    }
+
+    // Sort by position
+    labels.sort((a, b) => a.pixelPosition - b.pixelPosition);
+
+    // Render labels using pixel positions
     container.innerHTML = labels.map((item, index) => {
         const classes = ['x-axis-label'];
         if (item.isFuture) classes.push('future');
         if (item.isNear) classes.push('divider-label');
 
-        return `<span class="${classes.join(' ')}" style="left: ${item.position}%">${item.label}</span>`;
+        // Use pixel position instead of percentage
+        return `<span class="${classes.join(' ')}" style="left: ${item.pixelPosition}px">${item.label}</span>`;
     }).join('');
 }
 
@@ -1446,6 +1516,8 @@ function handleResize() {
         state.chart.resize(chartArea.clientWidth, chartArea.clientHeight);
     }
     resizeCanvas();
+    // Re-render x-axis with updated pixel positions
+    renderUnifiedXAxis();
 }
 
 // ================================================

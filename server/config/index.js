@@ -9,5 +9,9 @@ module.exports = {
   ws: {
     priceUpdateInterval: 5000, // 5 seconds
     heartbeatInterval: 30000 // 30 seconds
+  },
+  twelveData: {
+    apiKey: process.env.TWELVE_DATA_API_KEY,
+    baseUrl: 'api.twelvedata.com'
   }
 };
