@@ -69,10 +69,13 @@ const elements = {
     assetName: document.getElementById('assetName'),
     assetPrice: document.getElementById('assetPrice'),
     assetChange: document.getElementById('assetChange'),
+    chartWrapper: document.getElementById('chartWrapper'),
     chartArea: document.getElementById('chartArea'),
     chartLoading: document.getElementById('chartLoading'),
+    timeSelector: document.getElementById('timeSelector'),
     predictionCanvas: document.getElementById('predictionCanvas'),
     predictionOverlay: document.getElementById('predictionOverlay'),
+    predictionArea: document.getElementById('predictionArea'),
     currentPrice: document.getElementById('currentPrice'),
     predictedPrice: document.getElementById('predictedPrice'),
     predictedChange: document.getElementById('predictedChange'),
@@ -86,14 +89,7 @@ const elements = {
     connectWalletBtn: document.getElementById('connectWalletBtn'),
     drawBtn: document.getElementById('drawBtn'),
     clearBtn: document.getElementById('clearBtn'),
-    undoBtn: document.getElementById('undoBtn'),
-    timelineScrollContainer: document.getElementById('timelineScrollContainer'),
-    timelineContent: document.getElementById('timelineContent'),
-    nowDivider: document.getElementById('nowDivider'),
-    unifiedXAxis: document.getElementById('unifiedXAxis'),
-    predictionArea: document.getElementById('predictionArea'),
-    expiryDisplay: document.getElementById('expiryDisplay'),
-    expiryDate: document.getElementById('expiryDate')
+    undoBtn: document.getElementById('undoBtn')
 };
 
 // Canvas context
@@ -115,7 +111,6 @@ async function initializeApp() {
     // Wait for DOM to be fully ready with dimensions
     await waitForLayout();
 
-    setupCanvas();
     setupEventListeners();
     setupWeb3EventListeners();
 
@@ -125,11 +120,11 @@ async function initializeApp() {
         console.error('[Predictions] Failed to load initial chart data:', error);
     }
 
+    // Setup drawing canvas after chart loads
+    setupCanvas();
+
     loadPredictions();
     updatePayoffDisplay();
-
-    // Scroll to show "Now" divider in view
-    scrollToNow();
 
     // Check if already connected (page refresh)
     if (typeof Web3Integration !== 'undefined' && Web3Integration.isWeb3Available() && window.ethereum?.selectedAddress) {
@@ -184,6 +179,14 @@ function setupEventListeners() {
         }
     });
 
+    // Time selector buttons
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            const window = e.target.dataset.window;
+            if (window) handleTimeWindowSelect(window);
+        });
+    });
+
     // Drawing tools
     elements.drawBtn?.addEventListener('click', () => setActiveTool('draw'));
     elements.clearBtn?.addEventListener('click', clearDrawing);
@@ -200,9 +203,21 @@ function setupEventListeners() {
 
     // Window resize
     window.addEventListener('resize', debounce(handleResize, 250));
+}
 
-    // Timeline scroll - update expiry date
-    elements.timelineScrollContainer?.addEventListener('scroll', debounce(updateExpiryFromScroll, 50));
+function handleTimeWindowSelect(window) {
+    if (state.selectedWindow === window) return;
+
+    state.selectedWindow = window;
+
+    // Update active button
+    document.querySelectorAll('.time-btn').forEach(btn => {
+        btn.classList.toggle('active', btn.dataset.window === window);
+    });
+
+    // Clear drawing and reload chart
+    clearDrawing();
+    loadChartData();
 }
 
 function toggleAssetDropdown() {
@@ -528,46 +543,51 @@ function renderChart(retryCount = 0) {
     chartArea.innerHTML = '';
 
     try {
-    // Create chart
+    // Create chart with visible time scale
     state.chart = LightweightCharts.createChart(chartArea, {
         width: width,
         height: height,
         layout: {
-            background: { type: 'solid', color: 'transparent' },
-            textColor: '#9CA3AF'
+            background: { type: 'solid', color: '#000000' },
+            textColor: '#666666'
         },
         grid: {
-            vertLines: { color: 'rgba(42, 43, 53, 0.5)' },
-            horzLines: { color: 'rgba(42, 43, 53, 0.5)' }
+            vertLines: { color: '#1a1a1a' },
+            horzLines: { color: '#1a1a1a' }
         },
         crosshair: {
             mode: LightweightCharts.CrosshairMode.Normal,
             vertLine: {
-                color: '#00D4AA',
+                color: '#00ff00',
                 width: 1,
                 style: 2
             },
             horzLine: {
-                color: '#00D4AA',
+                color: '#00ff00',
                 width: 1,
                 style: 2
             }
         },
         rightPriceScale: {
-            borderColor: '#2A2B35',
+            borderColor: '#1a1a1a',
             scaleMargins: {
                 top: 0.1,
                 bottom: 0.1
             }
         },
         timeScale: {
-            borderColor: '#2A2B35',
-            timeVisible: false,  // Hide TradingView's time scale - we use unified x-axis
+            borderColor: '#1a1a1a',
+            timeVisible: true,
             secondsVisible: false,
-            visible: false  // Completely hide the time scale bar
+            visible: true
         },
         handleScroll: {
-            vertTouchDrag: false
+            mouseWheel: true,
+            pressedMouseMove: true
+        },
+        handleScale: {
+            mouseWheel: true,
+            pinch: true
         }
     });
 
@@ -583,10 +603,14 @@ function renderChart(retryCount = 0) {
         });
     } else {
         state.series = state.chart.addLineSeries({
-            color: '#00D4AA',
+            color: '#00ff00',
             lineWidth: 2,
             crosshairMarkerVisible: true,
-            crosshairMarkerRadius: 4
+            crosshairMarkerRadius: 4,
+            lastValueVisible: true,
+            priceLineVisible: true,
+            priceLineColor: '#00ff00',
+            priceLineWidth: 1
         });
     }
 
@@ -624,39 +648,20 @@ function renderChart(retryCount = 0) {
         state.series.setData(lineData);
     }
 
-    // Calculate price range for canvas based on target price if set
+    // Calculate price range for canvas
     updateCanvasPriceRange();
 
-    // Fit content
+    // Fit content to show all data
     state.chart.timeScale().fitContent();
 
-    // Subscribe to visible range changes to sync canvas price range
-    const debouncedSync = debounce(syncPriceRangeWithChart, 100);
-
-    state.chart.timeScale().subscribeVisibleLogicalRangeChange(() => {
-        debouncedSync();
-    });
-
-    // Subscribe to crosshair move to detect Y-axis scaling/dragging
-    state.chart.subscribeCrosshairMove((param) => {
-        // Sync when interacting with chart to capture Y-axis changes
-        if (param.point) {
-            debouncedSync();
-        }
-    });
-
-    // Also listen for mouse up on chart area to catch end of Y-axis drag
-    elements.chartArea?.addEventListener('mouseup', () => {
-        // Small delay to ensure chart has updated
-        setTimeout(syncPriceRangeWithChart, 50);
-    });
+    console.log('[Chart] Chart created and data set successfully');
 
     } catch (error) {
-        console.error('Error creating chart:', error);
+        console.error('[Chart] Error creating chart:', error);
         return false;
     }
 
-    return true; // Chart rendered successfully
+    return true;
 }
 
 function updateCanvasPriceRange() {
