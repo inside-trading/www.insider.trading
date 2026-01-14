@@ -87,28 +87,13 @@
                                 <div class="dropdown-item" data-value="CL=F">Oil</div>
                             </div>
                         </div>
-                    </div>
-                    <div class="drawing-tools">
-                        <button class="tool-btn active" id="drawBtn" title="Draw">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                        </button>
-                        <button class="tool-btn" id="clearBtn" title="Clear">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" stroke="currentColor" stroke-width="2"/>
-                                <path d="M19 6v14a1 1 0 01-1 1H6a1 1 0 01-1-1V6" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                        </button>
-                        <div class="tool-divider"></div>
-                        <button class="tool-btn" id="undoBtn" title="Undo">
-                            <svg viewBox="0 0 24 24" fill="none">
-                                <path d="M3 10H16C18.76 10 21 12.24 21 15s-2.24 5-5 5H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                <path d="M7 6L3 10L7 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            </svg>
-                        </button>
+                        <div class="time-selector" id="timeSelector">
+                            <button class="time-btn" data-window="1D">1D</button>
+                            <button class="time-btn active" data-window="1W">1W</button>
+                            <button class="time-btn" data-window="1M">1M</button>
+                            <button class="time-btn" data-window="1Y">1Y</button>
+                            <button class="time-btn" data-window="5Y">5Y</button>
+                        </div>
                     </div>
                     <div class="asset-info-right">
                         <span class="asset-price" id="assetPrice">$0.00</span>
@@ -116,36 +101,49 @@
                     </div>
                 </div>
 
-                <div class="expiry-display" id="expiryDisplay">
-                    <span class="expiry-label">expires:</span>
-                    <span class="expiry-date" id="expiryDate">-</span>
+                <div class="chart-wrapper" id="chartWrapper">
+                    <div class="chart-area" id="chartArea">
+                        <div class="chart-loading" id="chartLoading">
+                            <div class="loading-spinner"></div>
+                            <span>loading...</span>
+                        </div>
+                    </div>
                 </div>
 
-                <div class="timeline-scroll-container" id="timelineScrollContainer">
-                    <div class="timeline-content" id="timelineContent">
-                        <div class="timeline-charts-row">
-                            <div class="chart-area" id="chartArea">
-                                <div class="chart-loading" id="chartLoading">
-                                    <div class="loading-spinner"></div>
-                                    <span>loading...</span>
-                                </div>
-                            </div>
-                            <div class="now-divider" id="nowDivider">
-                                <div class="now-label">now</div>
-                            </div>
-                            <div class="prediction-area" id="predictionArea">
-                                <canvas id="predictionCanvas"></canvas>
-                                <div class="prediction-overlay" id="predictionOverlay">
-                                    <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
-                                        <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
-                                        <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
-                                    </svg>
-                                    <p>draw prediction</p>
-                                    <span class="hint">scroll to set expiry</span>
-                                </div>
-                            </div>
+                <div class="drawing-section">
+                    <div class="drawing-header">
+                        <span class="drawing-label">draw your prediction</span>
+                        <div class="drawing-tools">
+                            <button class="tool-btn active" id="drawBtn" title="Draw">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                            <button class="tool-btn" id="clearBtn" title="Clear">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" stroke="currentColor" stroke-width="2"/>
+                                    <path d="M19 6v14a1 1 0 01-1 1H6a1 1 0 01-1-1V6" stroke="currentColor" stroke-width="2"/>
+                                </svg>
+                            </button>
+                            <button class="tool-btn" id="undoBtn" title="Undo">
+                                <svg viewBox="0 0 24 24" fill="none">
+                                    <path d="M3 10H16C18.76 10 21 12.24 21 15s-2.24 5-5 5H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                                    <path d="M7 6L3 10L7 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                            </button>
                         </div>
-                        <div class="unified-x-axis" id="unifiedXAxis"></div>
+                    </div>
+                    <div class="prediction-canvas-area" id="predictionArea">
+                        <canvas id="predictionCanvas"></canvas>
+                        <div class="prediction-overlay" id="predictionOverlay">
+                            <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
+                                <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
+                                <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
+                            </svg>
+                            <p>draw your price prediction</p>
+                        </div>
                     </div>
                 </div>
             </div>
