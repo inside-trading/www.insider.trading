@@ -3,228 +3,146 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="insider.trading - price predictions">
-    <title>predict | insider.trading</title>
-    <link rel="stylesheet" href="css/styles.css">
-    <link rel="stylesheet" href="css/predictions.css">
+    <title>insider.trading</title>
     <link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://unpkg.com/lightweight-charts@4.1.0/dist/lightweight-charts.standalone.production.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/6.9.0/ethers.umd.min.js"></script>
-    <script>
-      window.va = window.va || function () { (window.vaq = window.vaq || []).push(arguments); };
-    </script>
-    <script defer src="/_vercel/insights/script.js"></script>
+    <link rel="stylesheet" href="css/predict.css">
 </head>
 <body>
+    <!-- Header -->
     <header class="header">
-        <div class="header-container">
-            <a href="/" class="logo">
-                <svg class="logo-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
-                </svg>
-                <span>insider.trading</span>
-            </a>
-
-            <nav class="nav">
-                <a href="/" class="nav-link">swap</a>
-                <a href="/predictions.html" class="nav-link active">predict</a>
-            </nav>
-
-            <div class="header-actions">
-                <div class="network-badge" id="networkBadge" style="display: none;">
-                    <span class="network-dot"></span>
-                    <span class="network-name" id="networkName">Sepolia</span>
-                </div>
-                <button class="connect-wallet-btn" id="connectWalletBtn">
-                    <svg viewBox="0 0 24 24" fill="none" class="wallet-icon">
-                        <rect x="2" y="6" width="20" height="14" rx="2" stroke="currentColor" stroke-width="2"/>
-                        <circle cx="14.5" cy="13" r="1.5" fill="currentColor"/>
-                        <path d="M6 6V5a2 2 0 012-2h10a2 2 0 012 2v1" stroke="currentColor" stroke-width="2"/>
-                    </svg>
-                    connect
-                </button>
-            </div>
-
-            <button class="mobile-menu-btn" id="mobileMenuBtn">
-                <span></span>
-                <span></span>
-                <span></span>
-            </button>
-        </div>
+        <a href="/" class="logo">insider.trading</a>
+        <nav class="nav">
+            <a href="/">swap</a>
+            <a href="/predictions.html" class="active">predict</a>
+        </nav>
+        <button class="wallet-btn" id="walletBtn">connect wallet</button>
     </header>
 
-    <main class="main predictions-main">
+    <!-- Main Content -->
+    <main class="main">
+        <!-- Chart Section -->
         <section class="chart-section">
-            <div class="chart-container">
-                <div class="asset-info-bar">
-                    <div class="asset-info-left">
-                        <div class="asset-selector" id="assetSelector">
-                            <span class="asset-symbol" id="assetSymbol">SPY</span>
-                            <span class="asset-name" id="assetName">S&P 500</span>
-                            <svg class="asset-dropdown-arrow" viewBox="0 0 24 24" fill="none">
-                                <path d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                            </svg>
+            <!-- Controls Bar -->
+            <div class="controls">
+                <div class="asset-picker">
+                    <button class="asset-btn" id="assetBtn">
+                        <span class="asset-symbol" id="assetSymbol">SPY</span>
+                        <span class="asset-price" id="assetPrice">--</span>
+                        <svg class="chevron" viewBox="0 0 24 24"><path d="M6 9l6 6 6-6"/></svg>
+                    </button>
+                    <div class="asset-dropdown" id="assetDropdown">
+                        <div class="asset-group">
+                            <div class="asset-group-label">Stocks</div>
+                            <button data-symbol="SPY">SPY <span>S&P 500</span></button>
+                            <button data-symbol="QQQ">QQQ <span>Nasdaq</span></button>
+                            <button data-symbol="AAPL">AAPL <span>Apple</span></button>
+                            <button data-symbol="TSLA">TSLA <span>Tesla</span></button>
+                            <button data-symbol="NVDA">NVDA <span>NVIDIA</span></button>
+                            <button data-symbol="MSFT">MSFT <span>Microsoft</span></button>
                         </div>
-                        <div class="asset-dropdown-menu" id="assetDropdownMenu">
-                            <div class="dropdown-group">
-                                <span class="dropdown-group-label">Stocks</span>
-                                <div class="dropdown-item" data-value="SPY">SPY</div>
-                                <div class="dropdown-item" data-value="QQQ">QQQ</div>
-                                <div class="dropdown-item" data-value="AAPL">AAPL</div>
-                                <div class="dropdown-item" data-value="TSLA">TSLA</div>
-                                <div class="dropdown-item" data-value="MSFT">MSFT</div>
-                                <div class="dropdown-item" data-value="NVDA">NVDA</div>
-                            </div>
-                            <div class="dropdown-group">
-                                <span class="dropdown-group-label">Crypto</span>
-                                <div class="dropdown-item" data-value="BTC-USD">BTC</div>
-                                <div class="dropdown-item" data-value="ETH-USD">ETH</div>
-                                <div class="dropdown-item" data-value="SOL-USD">SOL</div>
-                            </div>
-                            <div class="dropdown-group">
-                                <span class="dropdown-group-label">Commodities</span>
-                                <div class="dropdown-item" data-value="GC=F">Gold</div>
-                                <div class="dropdown-item" data-value="CL=F">Oil</div>
-                            </div>
+                        <div class="asset-group">
+                            <div class="asset-group-label">Crypto</div>
+                            <button data-symbol="BTC-USD">BTC <span>Bitcoin</span></button>
+                            <button data-symbol="ETH-USD">ETH <span>Ethereum</span></button>
+                            <button data-symbol="SOL-USD">SOL <span>Solana</span></button>
                         </div>
-                        <div class="time-selector" id="timeSelector">
-                            <button class="time-btn" data-window="1D">1D</button>
-                            <button class="time-btn active" data-window="1W">1W</button>
-                            <button class="time-btn" data-window="1M">1M</button>
-                            <button class="time-btn" data-window="1Y">1Y</button>
-                            <button class="time-btn" data-window="5Y">5Y</button>
-                        </div>
-                    </div>
-                    <div class="asset-info-right">
-                        <span class="asset-price" id="assetPrice">$0.00</span>
-                        <span class="asset-change positive" id="assetChange">+0.00%</span>
-                    </div>
-                </div>
-
-                <div class="chart-wrapper" id="chartWrapper">
-                    <div class="chart-area" id="chartArea">
-                        <div class="chart-loading" id="chartLoading">
-                            <div class="loading-spinner"></div>
-                            <span>loading...</span>
+                        <div class="asset-group">
+                            <div class="asset-group-label">Commodities</div>
+                            <button data-symbol="GC=F">GOLD <span>Gold</span></button>
+                            <button data-symbol="CL=F">OIL <span>Crude Oil</span></button>
                         </div>
                     </div>
                 </div>
 
-                <div class="drawing-section">
-                    <div class="drawing-header">
-                        <span class="drawing-label">draw your prediction</span>
-                        <div class="drawing-tools">
-                            <button class="tool-btn active" id="drawBtn" title="Draw">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                            <button class="tool-btn" id="clearBtn" title="Clear">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M3 6H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M8 6V4a1 1 0 011-1h6a1 1 0 011 1v2" stroke="currentColor" stroke-width="2"/>
-                                    <path d="M19 6v14a1 1 0 01-1 1H6a1 1 0 01-1-1V6" stroke="currentColor" stroke-width="2"/>
-                                </svg>
-                            </button>
-                            <button class="tool-btn" id="undoBtn" title="Undo">
-                                <svg viewBox="0 0 24 24" fill="none">
-                                    <path d="M3 10H16C18.76 10 21 12.24 21 15s-2.24 5-5 5H11" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                                    <path d="M7 6L3 10L7 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                                </svg>
-                            </button>
-                        </div>
-                    </div>
-                    <div class="prediction-canvas-area" id="predictionArea">
-                        <canvas id="predictionCanvas"></canvas>
-                        <div class="prediction-overlay" id="predictionOverlay">
-                            <svg viewBox="0 0 24 24" fill="none" class="draw-icon">
-                                <path d="M12 19L19 12L22 15L15 22L12 19Z" stroke="currentColor" stroke-width="2"/>
-                                <path d="M18 13L16.5 5.5L2 2L5.5 16.5L13 18L18 13Z" stroke="currentColor" stroke-width="2"/>
-                            </svg>
-                            <p>draw your price prediction</p>
-                        </div>
+                <div class="time-picker">
+                    <button data-range="1D">1D</button>
+                    <button data-range="1W" class="active">1W</button>
+                    <button data-range="1M">1M</button>
+                    <button data-range="1Y">1Y</button>
+                    <button data-range="5Y">5Y</button>
+                </div>
+
+                <div class="change-display">
+                    <span class="change-value" id="changeValue">--</span>
+                </div>
+            </div>
+
+            <!-- Chart Container -->
+            <div class="chart-container" id="chartContainer">
+                <div class="chart-area" id="chartArea"></div>
+                <canvas class="draw-canvas" id="drawCanvas"></canvas>
+                <div class="chart-loading" id="chartLoading">
+                    <div class="spinner"></div>
+                </div>
+                <div class="draw-prompt" id="drawPrompt">
+                    <div class="prompt-content">
+                        <div class="prompt-icon">✏️</div>
+                        <div class="prompt-text">Click and drag to draw your prediction</div>
                     </div>
                 </div>
             </div>
         </section>
 
-        <section class="prediction-info-section">
-            <div class="prediction-info-container">
-                <div class="info-card">
-                    <h3 class="info-card-title">Prediction</h3>
-                    <div class="info-rows">
-                        <div class="info-row">
-                            <span class="info-label">current</span>
-                            <span class="info-value" id="currentPrice">$0.00</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">target</span>
-                            <span class="info-value highlight" id="predictedPrice">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">change</span>
-                            <span class="info-value" id="predictedChange">-</span>
-                        </div>
-                        <div class="info-row">
-                            <span class="info-label">expires</span>
-                            <span class="info-value" id="predictionEnds">-</span>
-                        </div>
+        <!-- Prediction Panel -->
+        <section class="predict-section">
+            <div class="predict-panel">
+                <div class="predict-row">
+                    <label>Your Prediction</label>
+                    <div class="predict-value">
+                        <span id="predictedPrice">--</span>
+                        <span class="predict-change" id="predictedChange"></span>
                     </div>
                 </div>
-
-                <div class="info-card">
-                    <h3 class="info-card-title">Payoff</h3>
-                    <div class="payoff-display">
-                        <div class="payoff-amount" id="potentialPayoff">-</div>
-                        <div class="payoff-multiplier" id="payoffMultiplier">up to 10x</div>
-                    </div>
-                    <div class="payoff-breakdown">
-                        <div class="breakdown-item">
-                            <span class="breakdown-label">stake</span>
-                            <span class="breakdown-value" id="stakeDisplay">100 USDC</span>
-                        </div>
-                        <div class="breakdown-item">
-                            <span class="breakdown-label">max</span>
-                            <span class="breakdown-value highlight" id="maxWin">1,000 USDC</span>
-                        </div>
+                <div class="predict-row">
+                    <label>Expires</label>
+                    <div class="predict-value" id="expiryDate">--</div>
+                </div>
+                <div class="predict-row stake-row">
+                    <label>Stake Amount</label>
+                    <div class="stake-input-wrap">
+                        <input type="number" id="stakeInput" value="100" min="1" max="10000">
+                        <span class="stake-currency">INSD</span>
                     </div>
                 </div>
+                <div class="predict-row">
+                    <label>Max Payout</label>
+                    <div class="predict-value payout" id="maxPayout">1,000 INSD</div>
+                </div>
+                <button class="submit-btn" id="submitBtn" disabled>
+                    <span>Draw prediction to continue</span>
+                </button>
+                <button class="clear-btn" id="clearBtn">Clear Drawing</button>
             </div>
         </section>
 
-        <section class="submit-section">
-            <button class="submit-prediction-btn" id="submitPredictionBtn" disabled>
-                <span class="btn-text">draw prediction first</span>
-                <svg viewBox="0 0 24 24" fill="none" class="btn-icon">
-                    <path d="M5 12H19M19 12L12 5M19 12L12 19" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                </svg>
-            </button>
-        </section>
-
-        <section class="active-predictions-section">
-            <div class="section-header-row">
-                <h2 class="section-title">active predictions</h2>
+        <!-- Leaderboard -->
+        <section class="leaderboard-section">
+            <h2>Leaderboard</h2>
+            <div class="leaderboard-tabs">
+                <button class="active" data-tab="active">Active</button>
+                <button data-tab="settled">Settled</button>
+                <button data-tab="top">Top Traders</button>
             </div>
-            <div class="predictions-list" id="predictionsList">
-                <div class="empty-predictions">
-                    <svg viewBox="0 0 24 24" fill="none" class="empty-icon">
-                        <path d="M3 3V21H21" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
-                        <path d="M7 14L11 10L15 14L21 8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <p>no active predictions</p>
+            <div class="leaderboard-table" id="leaderboard">
+                <div class="leaderboard-header">
+                    <span>Trader</span>
+                    <span>Asset</span>
+                    <span>Prediction</span>
+                    <span>Stake</span>
+                    <span>Status</span>
+                </div>
+                <div class="leaderboard-body" id="leaderboardBody">
+                    <div class="empty-state">No predictions yet. Be the first!</div>
                 </div>
             </div>
         </section>
     </main>
 
     <script src="js/config.js"></script>
-    <script src="js/auth.js"></script>
-    <script src="js/web3.js"></script>
-    <script src="js/predictions.js"></script>
-    <script>
-      window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    <script src="js/predict.js"></script>
 </body>
 </html>
